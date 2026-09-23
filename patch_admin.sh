@@ -1,0 +1,3 @@
+sed -i "s|<h3 className=\"text-xl md:text-2xl font-bold mt-1 text-gray-900\">2,450</h3>|<h3 className=\"text-xl md:text-2xl font-bold mt-1 text-gray-900\">{JSON.parse(localStorage.getItem('ajps_users') || '[]').filter((u: any) => u.role === 'Student').length}</h3>|g" src/pages/dashboard/AdminDashboard.tsx
+
+sed -i "s|<h3 className=\"text-xl md:text-2xl font-bold mt-1 text-gray-900\">142</h3>|<h3 className=\"text-xl md:text-2xl font-bold mt-1 text-gray-900\">{JSON.parse(localStorage.getItem('ajps_users') || '[]').filter((u: any) => u.role === 'Teacher').length}</h3>|g" src/pages/dashboard/AdminDashboard.tsx

@@ -1,0 +1,6 @@
+{
+  "name": "Amar Jyoti Public School",
+  "description": "Enterprise-level School Management PWA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

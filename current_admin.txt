@@ -1,0 +1,509 @@
+import React, { useState, useEffect } from 'react';
+import { Plus, Save, X, Calendar as CalendarIcon, AlertTriangle, Lock, Unlock, FileText, Clock, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { GlassCard } from '../../components/ui/GlassCard';
+import { useExams, Exam } from '../../hooks/useExams';
+import { NotificationService } from '../../services/NotificationService';
+import { useSuccess } from '../../context/SuccessContext';
+
+function ExamCustomCalendar({ monthString, onSelect }: { monthString: string, onSelect: (date: string) => void }) {
+  const [monthName, yearStr] = monthString.split(' ');
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const startMonthIndex = monthNames.indexOf(monthName);
+  const startYear = parseInt(yearStr);
+  
+  if (startMonthIndex === -1 || isNaN(startYear)) return <div className="p-4 text-gray-500 font-medium">Invalid month format.</div>;
+  
+  const generateDays = (year: number, month: number) => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const days = [];
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(year, month, i);
+      const isSunday = d.getDay() === 0;
+      const isPast = d < today;
+      const dateStr = d.toLocaleDateString('en-CA'); // gets YYYY-MM-DD
+      days.push({ day: i, dateStr, isSunday, isPast, isSelectable: !isSunday && !isPast });
+    }
+    return days;
+  };
+
+  const month1Days = generateDays(startYear, startMonthIndex);
+  let month2Year = startYear;
+  let month2Index = startMonthIndex + 1;
+  if (month2Index > 11) {
+    month2Index = 0;
+    month2Year++;
+  }
+  const month2Days = generateDays(month2Year, month2Index);
+
+  const renderMonth = (name: string, days: any[]) => (
+    <div className="flex-1 min-w-[260px]">
+      <h4 className="text-sm font-bold text-gray-800 text-center mb-4">{name}</h4>
+      <div className="grid grid-cols-7 gap-2">
+        {['S','M','T','W','T','F','S'].map(d => <div key={d} className="text-center text-xs font-black text-gray-400">{d}</div>)}
+        {Array.from({ length: new Date(days[0].dateStr).getDay() }).map((_, i) => <div key={`pad-${i}`} />)}
+        {days.map(d => (
+          <button
+            key={d.day}
+            disabled={!d.isSelectable}
+            onClick={() => onSelect(d.dateStr)}
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all mx-auto
+              ${d.isSunday ? 'text-red-300 bg-red-50/50 cursor-not-allowed' : 
+                d.isPast ? 'text-gray-300 cursor-not-allowed opacity-50' : 
+                'text-gray-700 bg-white border border-gray-200 hover:bg-[#A05C2B] hover:text-white hover:border-[#A05C2B] hover:shadow-md'}`}
+          >
+            {d.day}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 flex flex-wrap gap-8 justify-between">
+      {renderMonth(`${monthNames[startMonthIndex]} ${startYear}`, month1Days)}
+      {renderMonth(`${monthNames[month2Index]} ${month2Year}`, month2Days)}
+    </div>
+  );
+}
+
+export function AdminExam() {
+  const { exams, addExam, toggleMarksEntry, postponeExam, datesheets, addDatesheet, deleteDatesheetsForExam } = useExams();
+  const { triggerSuccess } = useSuccess();
+  
+  const [isCreating, setIsCreating] = useState(false);
+  const [examName, setExamName] = useState('');
+  const [examMonth, setExamMonth] = useState('August 2026');
+  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
+  const [availableClasses, setAvailableClasses] = useState<string[]>([]);
+  
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  
+  const [datesheetModalOpen, setDatesheetModalOpen] = useState(false);
+  const [dsClasses, setDsClasses] = useState<string[]>([]);
+  const [dsRows, setDsRows] = useState<{subject: string, date: string}[]>([]);
+  
+  const [manageScheduleOpen, setManageScheduleOpen] = useState(false);
+
+  useEffect(() => {
+    const classes = JSON.parse(localStorage.getItem('ajps_classes') || '[]');
+    setAvailableClasses(classes.map((c: any) => c.className || c.id));
+  }, []);
+
+  const handleToggleClass = (cls: string) => {
+    if (selectedClasses.includes(cls)) setSelectedClasses(selectedClasses.filter(c => c !== cls));
+    else setSelectedClasses([...selectedClasses, cls]);
+  };
+
+  const handleCreateExam = () => {
+    if (!examName || selectedClasses.length === 0) {
+      alert("Name and classes are required.");
+      return;
+    }
+    const newExam: Exam = {
+      id: `exam_${Date.now()}`,
+      name: examName,
+      month: examMonth,
+      classes: selectedClasses,
+      isMarksEntryOpen: false
+    };
+    addExam(newExam);
+    setIsCreating(false);
+    triggerSuccess('Exam declared successfully.');
+  };
+
+  const handleToggleLock = () => {
+    if (!selectedExam) return;
+    if (!window.confirm('Are you sure you want to change the marks entry lock status?')) return;
+    
+    toggleMarksEntry(selectedExam.id);
+    const newStatus = !selectedExam.isMarksEntryOpen;
+    setSelectedExam({ ...selectedExam, isMarksEntryOpen: newStatus });
+    
+    const allUsers = JSON.parse(localStorage.getItem('ajps_users') || '[]');
+    const targetTeachers = allUsers.filter((u: any) => u.role === 'Teacher');
+    
+    NotificationService.sendNotification({
+      recipientIds: targetTeachers.map((s: any) => s.id),
+      title: newStatus ? 'Marks Entry Unlocked' : 'Marks Entry Locked',
+      message: `Marks entry for ${selectedExam.name} is now ${newStatus ? 'open' : 'closed'}.`,
+      type: 'warning',
+      actionPath: '/teacher/exams',
+      actionLabel: 'View Exam'
+    });
+    
+    triggerSuccess(newStatus ? 'Marks Entry Unlocked' : 'Marks Entry Locked');
+  };
+
+  const handlePostpone = (days: number) => {
+    if (!selectedExam) return;
+    if (!window.confirm(`Are you sure you want to postpone by ${days} days?`)) return;
+    postponeExam(selectedExam.id, days);
+    
+    const allUsers = JSON.parse(localStorage.getItem('ajps_users') || '[]');
+    const targetStudents = allUsers.filter((u: any) => 
+      u.role === 'Student' && 
+      (selectedExam.classes || []).some((sc: string) => 
+        sc === u.className || 
+        sc === `Class ${u.classId}` ||
+        sc?.toLowerCase().trim() === u.className?.toLowerCase().trim()
+      )
+    );
+    
+    NotificationService.sendNotification({
+      recipientIds: targetStudents.map((s: any) => s.id),
+      title: 'Exam Postponed',
+      message: `Exams have been postponed by ${days} days. Check updated datesheet.`,
+      type: 'warning',
+      actionPath: '/student/exams',
+      actionLabel: 'View Datesheet'
+    });
+    triggerSuccess(`Exam postponed by ${days} days.`);
+  };
+
+  const handleRecreateDatesheet = () => {
+    if (!selectedExam) return;
+    if (!window.confirm('Are you sure you want to delete all datesheets for this exam? You will need to recreate them from scratch.')) return;
+    deleteDatesheetsForExam(selectedExam.id);
+    triggerSuccess('Datesheets deleted. Ready to recreate.');
+    setManageScheduleOpen(false);
+  };
+
+  const handleOpenDatesheetBuilder = () => {
+    setDsClasses([]);
+    setDsRows([]);
+    setDatesheetModalOpen(true);
+  };
+  
+  const handleCalendarSelect = (dateStr: string) => {
+    if (dsRows.some(r => r.date === dateStr)) return;
+    setDsRows([...dsRows, { subject: '', date: dateStr }].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+  };
+
+  const handleRowSubjectChange = (index: number, value: string) => {
+    const newRows = [...dsRows];
+    newRows[index].subject = value;
+    setDsRows(newRows);
+  };
+
+  const removeRow = (index: number) => setDsRows(dsRows.filter((_, i) => i !== index));
+
+  const saveDatesheet = () => {
+    if (!selectedExam || dsClasses.length === 0) {
+        alert("Please select at least one class.");
+        return;
+    }
+    if (dsRows.length === 0 || dsRows.some(r => !r.subject)) {
+      alert("Please add dates and fill all subjects.");
+      return;
+    }
+    
+    addDatesheet(selectedExam.id, dsClasses, dsRows);
+    triggerSuccess('Datesheet saved successfully.');
+    
+    const allUsers = JSON.parse(localStorage.getItem('ajps_users') || '[]');
+    const targetStudents = allUsers.filter((u: any) => 
+      u.role === 'Student' && 
+      dsClasses.some((sc: string) => 
+        sc === u.className || 
+        sc === `Class ${u.classId}` ||
+        sc?.toLowerCase().trim() === u.className?.toLowerCase().trim()
+      )
+    );
+    
+    NotificationService.sendNotification({
+      recipientIds: targetStudents.map((s: any) => s.id),
+      title: 'New Datesheet Published',
+      message: `The datesheet for ${selectedExam.name} is now available.`,
+      type: 'success',
+      actionPath: '/student/exams',
+      actionLabel: 'View Datesheet'
+    });
+    
+    setDatesheetModalOpen(false);
+  };
+
+  if (selectedExam) {
+    const hasDatesheets = datesheets.some(d => d.examId === selectedExam.id);
+
+    return (
+      <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 min-h-[calc(100vh-4rem)] pb-24 animate-in fade-in zoom-in-95 duration-300">
+        <button onClick={() => setSelectedExam(null)} className="text-sm font-bold text-gray-500 hover:text-gray-800 flex items-center gap-2">
+          &larr; Back to Exams
+        </button>
+        
+        <GlassCard className="p-8 bg-white border border-gray-200 shadow-xl">
+          <div className="flex justify-between items-start border-b border-gray-100 pb-6 mb-6">
+            <div>
+              <h1 className="text-3xl font-black text-[#1F2937]">{selectedExam.name}</h1>
+              <p className="text-sm font-bold text-[#A05C2B] mt-2 bg-[#FDF7EE] inline-block px-3 py-1 rounded-full">{selectedExam.month}</p>
+            </div>
+            <div className="text-right">
+              <span className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${selectedExam.isMarksEntryOpen ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
+                {selectedExam.isMarksEntryOpen ? <><Unlock className="w-4 h-4"/> Marks Open</> : <><Lock className="w-4 h-4"/> Marks Locked</>}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="md:col-span-2">
+              <h3 className="text-sm font-bold text-gray-500 uppercase mb-3">Applicable Classes</h3>
+              <div className="flex flex-wrap gap-2">
+                {selectedExam.classes.map(c => (
+                  <span key={c} className="bg-gray-50 border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-bold">Class {c}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <GlassCard className="p-6 bg-[#FDFBF7] border border-[#A05C2B]/20">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
+                <FileText className="w-5 h-5 text-[#A05C2B]" /> Manage Datesheets
+              </h3>
+              <p className="text-sm text-gray-600 mb-6 font-medium">Build and manage the schedule for applicable classes.</p>
+              <button 
+                onClick={handleOpenDatesheetBuilder}
+                className="w-full py-2.5 bg-white border border-[#A05C2B]/30 text-[#A05C2B] font-bold rounded-xl shadow-sm hover:bg-[#FDF7EE] transition-colors"
+              >
+                Open Datesheet Builder
+              </button>
+            </GlassCard>
+
+            <GlassCard className="p-6 bg-gray-50 border border-gray-200">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
+                {selectedExam.isMarksEntryOpen ? <Lock className="w-5 h-5 text-gray-600" /> : <Unlock className="w-5 h-5 text-gray-600" />}
+                Evaluation Status
+              </h3>
+              <p className="text-sm text-gray-600 mb-6 font-medium">Toggle marks entry access for teachers.</p>
+              <button 
+                onClick={handleToggleLock}
+                className="w-full py-2.5 bg-[#1F2937] text-white font-bold rounded-xl shadow-sm hover:bg-gray-800 transition-colors"
+              >
+                {selectedExam.isMarksEntryOpen ? "Lock Marks Entry" : "Unlock Marks Entry"}
+              </button>
+            </GlassCard>
+            
+            {hasDatesheets && (
+              <GlassCard className="p-6 bg-amber-50 border border-amber-200 md:col-span-2">
+                <button 
+                  onClick={() => setManageScheduleOpen(!manageScheduleOpen)}
+                  className="w-full flex justify-between items-center text-left"
+                >
+                  <div>
+                    <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-1">
+                      <Clock className="w-5 h-5 text-amber-600" /> Manage Schedule (Postpone / Recreate)
+                    </h3>
+                    <p className="text-sm text-gray-600 font-medium">Modify existing schedules or clear them completely.</p>
+                  </div>
+                  {manageScheduleOpen ? <ChevronUp className="w-5 h-5 text-gray-500" /> : <ChevronDown className="w-5 h-5 text-gray-500" />}
+                </button>
+                
+                {manageScheduleOpen && (
+                  <div className="mt-6 pt-6 border-t border-amber-200/50 flex flex-wrap gap-3 animate-in slide-in-from-top-2">
+                    <div className="flex gap-2">
+                      <button onClick={() => handlePostpone(1)} className="px-5 py-2 bg-white border border-amber-300 text-amber-800 font-bold rounded-xl shadow-sm hover:bg-amber-100">+1 Day</button>
+                      <button onClick={() => handlePostpone(2)} className="px-5 py-2 bg-white border border-amber-300 text-amber-800 font-bold rounded-xl shadow-sm hover:bg-amber-100">+2 Days</button>
+                      <button onClick={() => handlePostpone(3)} className="px-5 py-2 bg-white border border-amber-300 text-amber-800 font-bold rounded-xl shadow-sm hover:bg-amber-100">+3 Days</button>
+                    </div>
+                    <button onClick={handleRecreateDatesheet} className="px-5 py-2 bg-white border border-red-200 text-red-600 font-bold rounded-xl shadow-sm hover:bg-red-50 flex items-center gap-2 ml-auto">
+                      <RefreshCw className="w-4 h-4" /> Recreate Datesheet
+                    </button>
+                  </div>
+                )}
+              </GlassCard>
+            )}
+          </div>
+        </GlassCard>
+
+        {datesheetModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+            <div className="bg-[#FDFBF7] w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl relative border border-white">
+              <button onClick={() => setDatesheetModalOpen(false)} className="absolute top-6 right-6 p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="p-8">
+                <h2 className="text-2xl font-black text-gray-900 mb-6">Datesheet Builder</h2>
+                
+                <div className="mb-8">
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Select Classes for this Schedule</label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedExam.classes.map(c => (
+                      <button
+                        key={c}
+                        onClick={() => {
+                          if (dsClasses.includes(c)) setDsClasses(dsClasses.filter(cls => cls !== c));
+                          else setDsClasses([...dsClasses, c]);
+                        }}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors shadow-sm ${dsClasses.includes(c) ? 'bg-[#A05C2B] text-white border-[#A05C2B]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                      >
+                        Class {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Pick Dates to Add</label>
+                    <ExamCustomCalendar monthString={selectedExam.month} onSelect={handleCalendarSelect} />
+                </div>
+
+                {dsRows.length > 0 && (
+                  <div className="mb-8">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Assign Subjects</label>
+                    <div className="space-y-3">
+                      {dsRows.map((row, i) => (
+                        <div key={i} className="flex gap-4 items-center bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                          <div className="w-32 bg-gray-50 border border-gray-100 rounded-lg px-4 py-2 text-sm font-bold text-gray-700 text-center">
+                            {new Date(row.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </div>
+                          <input type="text" placeholder="Enter Subject Name..." value={row.subject} onChange={e => handleRowSubjectChange(i, e.target.value)} className="flex-1 bg-white border border-gray-200 focus:border-[#A05C2B] focus:ring-1 focus:ring-[#A05C2B] rounded-lg px-4 py-2 text-sm font-semibold"/>
+                          <button onClick={() => removeRow(i)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><X className="w-5 h-5"/></button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <button onClick={saveDatesheet} className="w-full py-4 bg-[#1F2937] text-white font-bold rounded-xl shadow-md hover:bg-gray-800 text-lg">
+                  Save Schedule & Notify Students
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 min-h-[calc(100vh-4rem)] pb-24 md:pb-8 animate-in fade-in zoom-in-95 duration-300">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-200 pb-6">
+        <div>
+          <h1 className="text-2xl font-black text-[#1F2937] tracking-tight">Exam Administration</h1>
+          <p className="text-sm font-semibold text-gray-500 mt-1">Manage exam windows and evaluation locks.</p>
+        </div>
+        <button 
+          onClick={() => setIsCreating(true)}
+          className="bg-[#1F2937] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-gray-800 transition-colors flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" /> Declare New Exam
+        </button>
+      </div>
+
+      {isCreating && (
+        <GlassCard className="p-6 md:p-8 bg-white border border-gray-200 shadow-xl relative z-10 animate-in slide-in-from-top-4">
+          <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5 text-[#A05C2B]" /> Declare New Examination
+            </h2>
+            <button onClick={() => setIsCreating(false)} className="text-gray-400 hover:text-gray-600 p-1">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Exam Title</label>
+              <input 
+                type="text" 
+                value={examName} onChange={e => setExamName(e.target.value)}
+                placeholder="e.g. Mid Term Examination"
+                className="w-full bg-[#FDFBF7] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#A05C2B]/30 font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Term / Month</label>
+              <select 
+                value={examMonth} onChange={e => setExamMonth(e.target.value)}
+                className="w-full bg-[#FDFBF7] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#A05C2B]/30 font-medium"
+              >
+                {['August 2026', 'September 2026', 'December 2026', 'March 2027'].map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+          
+          <div className="mb-8">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Applicable Classes</label>
+            <div className="flex flex-wrap gap-2">
+              {availableClasses.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">No classes found in system.</p>
+              ) : availableClasses.map(cls => (
+                <button
+                  key={cls}
+                  onClick={() => handleToggleClass(cls)}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${selectedClasses.includes(cls) ? 'bg-[#A05C2B] text-white border-[#A05C2B] shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                >
+                  Class {cls}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button 
+              onClick={() => setIsCreating(false)}
+              className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleCreateExam}
+              className="px-6 py-2.5 bg-[#A05C2B] text-white text-sm font-bold rounded-xl shadow-md hover:bg-[#8e5226] transition-colors flex items-center gap-2"
+            >
+              <Save className="w-4 h-4" /> Save Exam
+            </button>
+          </div>
+        </GlassCard>
+      )}
+
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5 text-amber-600" /> Active Exams
+        </h3>
+        {exams.length === 0 ? (
+          <GlassCard className="p-12 text-center bg-white/40 border-white shadow-sm">
+             <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+             <h3 className="text-lg font-bold text-gray-800">No Exams Declared</h3>
+             <p className="text-sm text-gray-500 mt-2 font-medium">Click "Declare New Exam" to schedule.</p>
+          </GlassCard>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {exams.map(exam => (
+              <GlassCard 
+                key={exam.id} 
+                className="p-5 bg-white border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow cursor-pointer group relative"
+                onClick={() => setSelectedExam(exam)}
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-bold text-gray-900 text-lg group-hover:text-[#A05C2B] transition-colors">{exam.name}</h4>
+                    <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wide">
+                      {exam.month}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 mb-2">
+                     <p className="text-xs text-gray-500 font-semibold line-clamp-1">
+                       <span className="text-gray-400 font-medium">Classes:</span> {(exam.classes || []).join(', ')}
+                     </p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${exam.isMarksEntryOpen ? 'text-amber-600' : 'text-gray-400'}`}>
+                      {exam.isMarksEntryOpen ? '🔓 Marks Unlocked' : '🔒 Marks Locked'}
+                    </span>
+                    <span className="text-xs font-bold text-[#A05C2B] opacity-0 group-hover:opacity-100 transition-opacity">
+                        View Details &rarr;
+                    </span>
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

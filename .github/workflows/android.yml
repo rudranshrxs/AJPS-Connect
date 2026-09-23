@@ -1,0 +1,45 @@
+name: Android Driver App CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - 'DriverApp/**'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'DriverApp/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./DriverApp
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      continue-on-error: true # Just in case we don't have the wrapper generated yet
+
+    - name: Generate Gradle Wrapper (If missing)
+      run: gradle wrapper --gradle-version 8.2
+
+    - name: Build with Gradle
+      run: ./gradlew build assembleDebug
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: driver-app-apk
+        path: DriverApp/app/build/outputs/apk/debug/app-debug.apk

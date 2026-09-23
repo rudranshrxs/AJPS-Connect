@@ -1,0 +1,380 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+@theme {
+  --font-sans: 'Poppins', sans-serif;
+}
+
+@layer utilities {
+  /* Hide scrollbar for a cleaner PWA look while keeping functionality */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+html, body {
+  overscroll-behavior-y: none;
+  touch-action: pan-y;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Prevent text selection on interactive elements, allow it elsewhere */
+button, a {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ── Cinematic Text Reveal ────────────────────────────────── */
+@keyframes blurToClear {
+  0% { opacity: 0; filter: blur(12px); transform: translateY(6px); }
+  100% { opacity: 1; filter: blur(0px); transform: translateY(0); }
+}
+.word-reveal {
+  opacity: 0;
+  display: inline-block;
+  animation: blurToClear 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* ── Sahayak Typing Dots ──────────────────────────────────── */
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* ── Broadsheet Print Styles ──────────────────────────────── */
+@media print {
+  /* Hide everything except the print layout */
+  body * {
+    visibility: hidden !important;
+  }
+  #broadsheet-print-layout,
+  #broadsheet-print-layout * {
+    visibility: visible !important;
+  }
+  #broadsheet-print-layout {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    z-index: 99999 !important;
+    background: white !important;
+    padding: 10mm !important;
+    margin: 0 !important;
+  }
+
+  @page {
+    size: landscape;
+    margin: 8mm;
+  }
+
+  /* Print table styling */
+  #broadsheet-print-layout table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 10pt !important;
+  }
+  #broadsheet-print-layout th,
+  #broadsheet-print-layout td {
+    border: 1.5px solid #333 !important;
+    padding: 4px 6px !important;
+    text-align: center !important;
+    font-size: 9pt !important;
+  }
+  #broadsheet-print-layout th {
+    background: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-weight: 800 !important;
+  }
+  #broadsheet-print-layout .print-header {
+    text-align: center !important;
+    margin-bottom: 8mm !important;
+  }
+  #broadsheet-print-layout .print-header h1 {
+    font-size: 18pt !important;
+    font-weight: 900 !important;
+    letter-spacing: 2px !important;
+    margin: 0 !important;
+  }
+  #broadsheet-print-layout .print-header p {
+    font-size: 9pt !important;
+    margin: 2px 0 !important;
+  }
+  #broadsheet-print-layout .print-header h2 {
+    font-size: 13pt !important;
+    font-weight: 700 !important;
+    margin-top: 4mm !important;
+    text-decoration: underline !important;
+  }
+  #broadsheet-print-layout .print-footer {
+    margin-top: 15mm !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 0 20mm !important;
+  }
+  #broadsheet-print-layout .print-footer .sig-block {
+    text-align: center !important;
+  }
+  #broadsheet-print-layout .print-footer .sig-line {
+    width: 40mm !important;
+    border-bottom: 1.5px solid #333 !important;
+    margin-bottom: 3mm !important;
+  }
+  #broadsheet-print-layout .print-footer .sig-label {
+    font-size: 8pt !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+  }
+}
+
+
+
+
+
+/* 2. Sidebar */
+.sidebar-responsive {
+  width: 225px !important;
+  padding: 20px !important;
+}
+
+/* 11. Sidebar Logo */
+.sidebar-logo {
+  width: 110px !important;
+  height: 110px !important;
+}
+.sidebar-school-name { font-size: 21px !important; }
+.sidebar-public-school { font-size: 15px !important; }
+
+/* 12. Sidebar Nav Items */
+.sidebar-nav-item {
+  width: 195px !important;
+  height: auto !important;
+  padding: 12px 16px !important;
+  gap: 12px !important;
+  font-size: 16px !important;
+}
+.sidebar-nav-item svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* 3. Hero Banner */
+.hero-responsive {
+  width: calc(100% - 1px) !important;
+  margin-top: 1px !important;
+  margin-right: 1px !important;
+  height: 365px !important;
+}
+
+/* Banner Gradients */
+.banner-left-fade::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.38) 0%, rgba(0, 0, 0, 0.20) 18%, rgba(0, 0, 0, 0.05) 35%, transparent 55%);
+  pointer-events: none; z-index: 5;
+}
+
+.banner-left-fade::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 45%, rgba(0,0,0,.35) 100%);
+  pointer-events: none; z-index: 10;
+}
+
+/* 4. Hero Text */
+.hero-greeting { font-size: 14px !important; }
+.hero-name { font-size: 28px !important; }
+.hero-subtitle { font-size: 13px !important; }
+.hero-content {
+  position: absolute !important;
+  top: 145px !important;
+  left: 28px !important;
+}
+
+/* 5. Date Card */
+.date-card-responsive {
+  width: max-content !important;
+  min-width: 120px !important;
+  height: max-content !important;
+  right: 22px !important;
+  top: 154px !important;
+  border-radius: 19px !important;
+  padding: 15px !important;
+  position: absolute !important;
+}
+
+/* 6. Four Stat Cards */
+.stats-grid-responsive {
+  width: calc(100% - 2px) !important;
+  position: relative !important;
+  margin-top: -4rem !important;
+  padding-left: 32px !important;
+  padding-bottom: 20px !important;
+}
+
+.stat-card {
+  width: 100% !important;
+  height: 115px !important;
+  padding: 17px !important;
+}
+
+.stat-card-glass {
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.50) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+}
+
+.top-btn-glass {
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  border-radius: 16px !important; /* Smooth square rounded-2xl approximation */
+  background: rgba(255, 255, 255, 0.55) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #202020 !important;
+}
+
+/* 7. Stat Card Content */
+.stat-title { font-size: 12px !important; }
+.stat-number { font-size: 24px !important; }
+.stat-label { font-size: 11px !important; }
+.stat-icon-circle {
+  width: 38px !important;
+  height: 38px !important;
+  flex-shrink: 0 !important;
+  position: static !important;
+}
+.stat-icon-circle svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* 8. Glass Card */
+.glass-card-responsive {
+  background: rgba(255,255,255,0.72) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255,255,255,0.85) !important;
+}
+
+/* 9. Events + Notices */
+.events-notices-grid {
+  display: flex !important;
+  gap: 15px !important;
+  width: 675px !important;
+}
+.events-notices-card {
+  width: 330px !important;
+  height: 270px !important;
+}
+
+/* 10. Subject Overview */
+.subject-overview-responsive {
+  width: 680px !important;
+  height: 155px !important;
+}
+.subject-grid {
+  display: flex !important;
+  gap: 10px !important;
+}
+.subject-card {
+  width: 125px !important;
+  padding: 12px !important;
+}
+
+/* 13. Top Buttons */
+.top-btn-responsive {
+  width: 47px !important;
+  height: 47px !important;
+  border-radius: 14px !important;
+  gap: 8px !important;
+}
+.top-btn-responsive svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* 14. Mobile Breakpoint (Fixed Approximate Dimensions) */
+@media (max-width: 768px) {
+  .dashboard-container {
+    width: 100% !important;
+    height: 860px !important;
+    display: flex !important;
+    grid-template-columns: none !important;
+  }
+  
+  .main-content-responsive {
+    width: 100% !important;
+    padding: 10px !important;
+  }
+
+  .sidebar-responsive {
+    display: none !important;
+  }
+
+  .hero-responsive {
+    width: 100% !important;
+    height: 230px !important;
+    margin: 0 !important;
+  }
+  .hero-content {
+    top: 100px !important;
+    left: 16px !important;
+  }
+  
+  .stats-grid-responsive {
+    position: relative !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    margin-top: 20px !important;
+    padding-left: 0 !important;
+  }
+  .stat-card {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 90px !important;
+  }
+  
+  .events-notices-grid {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+  .events-notices-card {
+    width: 100% !important;
+    height: 220px !important;
+  }
+  
+  .subject-overview-responsive {
+    width: 100% !important;
+  }
+  .subject-grid {
+    flex-wrap: wrap !important;
+  }
+}
+
+/* 17. Mobile Header */
+.mobile-header {
+  align-items: center !important;
+}
+.mobile-header-logo {
+  width: 44px !important;
+  height: auto !important;
+}
+.mobile-header-title {
+  font-size: 15px !important;
+}
+.mobile-header-subtitle {
+  font-size: 10px !important;
+}
+
