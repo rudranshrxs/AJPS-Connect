@@ -21,6 +21,21 @@ export function StudentDirectory() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const selectedStudent = useMemo(() => globalStudents.find(s => s.id === selectedStudentId) || null, [globalStudents, selectedStudentId]);
   const [isClassTeacher, setIsClassTeacher] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(20);
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [searchQuery, filters]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 200) {
+        setVisibleCount(prev => prev + 20);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // New states for import & filtering
   const [showImportModal, setShowImportModal] = useState(false);
@@ -275,7 +290,7 @@ export function StudentDirectory() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredStudents.map((st) => (
+                {filteredStudents.slice(0, visibleCount).map((st) => (
                   <tr 
                     key={st.id} 
                     onClick={() => setSelectedStudentId(st.id)}
@@ -308,7 +323,7 @@ export function StudentDirectory() {
           </div>
         ) : (
           <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 bg-gray-50/50">
-            {filteredStudents.map((st) => (
+            {filteredStudents.slice(0, visibleCount).map((st) => (
               <div 
                 key={st.id}
                 onClick={() => setSelectedStudentId(st.id)}

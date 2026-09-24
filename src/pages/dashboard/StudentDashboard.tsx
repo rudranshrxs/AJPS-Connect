@@ -177,7 +177,7 @@ export function StudentDashboard() {
   const formattedDate = today.toLocaleDateString("en-US", dateOptions);
   const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
 
-  const shortRollNo = currentUser?.rollNumber?.slice(-4) || "0000";
+  const shortRollNo = currentUser?.rollNumber?.replace(/^132426/, '') || "0000";
 
   const handleApplyLeave = (e: React.FormEvent) => {
     e.preventDefault();

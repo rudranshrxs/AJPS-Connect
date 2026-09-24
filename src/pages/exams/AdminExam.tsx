@@ -47,7 +47,7 @@ function ScheduleEditor({ rows, onSubjectChange, onRemoveRow }: { rows: { subjec
 export function AdminExam() {
   const { currentUser } = useAuth();
   const { triggerSuccess, triggerError } = useSuccess();
-  const { exams, updateExam, addExam, deleteExam, toggleMarksEntry, postponeExam, deleteDatesheetsForExam, addDatesheet, datesheets, results, publishResult } = useExams();
+  const { exams, updateExam, addExam, deleteExam, toggleMarksEntry, postponeExam, deleteDatesheetsForExam, addDatesheets, datesheets, results, publishResult } = useExams();
 
   const [isCreating, setIsCreating] = useState(false);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
@@ -427,7 +427,8 @@ export function AdminExam() {
 
     // Marks can only be unlocked strictly after the first exam date
     const canUnlockMarks = firstDate ? todayTime >= firstDate : false;
-    const autoUnlockEligible = firstDate ? todayTime >= firstDate && !selectedExam.isMarksEntryOpen : false;
+    const isMarksEntryOpenDerived = firstDate ? todayTime > firstDate + 24*60*60*1000 : false;
+    const isMarksEntryOpen = selectedExam.isMarksEntryOpen || isMarksEntryOpenDerived;
 
     return (
       <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 min-h-[calc(100vh-4rem)] pb-24 md:pb-8 animate-in fade-in zoom-in-95 duration-300">
@@ -494,26 +495,8 @@ export function AdminExam() {
               </div>
 
               <div className="flex flex-col gap-3">
-                {autoUnlockEligible && (
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-xl shadow-sm mb-4">
-                    <p className="text-sm font-bold text-blue-800">Exam has commenced. You can now unlock marks entry for teachers.</p>
-                  </div>
-                )}
-                {canUnlockMarks && (
-                  <button
-                    onClick={() => {
-                      if (!selectedExam.isMarksEntryOpen) {
-                        setUnlockConfirmModal(selectedExam.id);
-                      } else {
-                        toggleMarksEntry(selectedExam.id);
-                      }
-                    }}
-                    className={`w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-md transition-colors flex items-center justify-center gap-2 ${selectedExam.isMarksEntryOpen ? 'bg-amber-600 hover:bg-amber-700' : 'bg-[#10B981] hover:bg-[#059669]'}`}
-                  >
-                    <Settings className="w-5 h-5" />
-                    {selectedExam.isMarksEntryOpen ? 'Lock Marks Entry' : 'Unlock Marks Entry'}
-                  </button>
-                )}
+                
+                
                 <div className="flex gap-3">
                   <button
                     onClick={() => handleDelete(selectedExam.id)}
@@ -668,10 +651,10 @@ export function AdminExam() {
                               {isPublished && <span className="bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1 rounded-md">Published</span>}
                             </div>
                             <div className="flex gap-2">
-                              <button onClick={() => window.print()} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-xs font-bold rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
-                                <Printer className="w-4 h-4" /> Print Marksheet
+                              <button onClick={() => setAdminReportModal({ exam: selectedExam, classId: classIdToMatch, students: studentList, result: classResult, subjects: allSubjects, c })} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-[#A05C2B] text-[#A05C2B] text-xs font-bold rounded-lg shadow-sm hover:bg-[#FDF7EE] transition-colors">
+                                <Printer className="w-4 h-4" /> Generate Report
                               </button>
-                              {!isPublished && selectedExam.isMarksEntryOpen && (
+                              {!isPublished && (
                                 <button
                                   onClick={() => handlePublishClick(selectedExam.id, classIdToMatch, c, classResult, clsObj)}
                                   className="px-5 py-2 bg-[#1F2937] text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
@@ -1003,13 +986,7 @@ export function AdminExam() {
                 const firstDate = allDates.length > 0 ? Math.min(...allDates) : null;
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                const autoUnlockEligible = firstDate ? (today.getTime() >= firstDate && !selectedExam.isMarksEntryOpen) : false;
-
-                return autoUnlockEligible ? (
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-xl shadow-sm mb-4">
-                    <p className="text-sm font-bold text-blue-800">Auto-Unlock Eligible: The exam date has reached. You can unlock marks entry from the Overview tab.</p>
-                  </div>
-                ) : null;
+                
               })()}
 
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-200 shadow-sm">
@@ -1167,7 +1144,230 @@ export function AdminExam() {
 
 
 
-        <Toast message={toastMsg} />
+        
+        {adminReportModal && !printMode && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1F2937]/40 backdrop-blur-sm animate-in fade-in">
+            <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-2xl relative border border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2"><Printer className="w-6 h-6 text-[#A05C2B]"/> Generate Report</h2>
+              <p className="text-sm text-gray-600 mb-6">Select the type of report you want to generate for {adminReportModal.c}.</p>
+              
+              <div className="space-y-3">
+                <button 
+                  onClick={() => { setPrintMode('class'); setTimeout(() => window.print(), 500); }} 
+                  className="w-full text-left p-4 border border-gray-200 rounded-xl hover:border-[#A05C2B] hover:bg-[#FDF7EE] transition-all group"
+                >
+                  <h3 className="font-bold text-gray-900 group-hover:text-[#A05C2B]">Class Report</h3>
+                  <p className="text-xs text-gray-500 mt-1">Consolidated marksheet of all students in the class.</p>
+                </button>
+                
+                <div className="p-4 border border-gray-200 rounded-xl bg-gray-50">
+                  <h3 className="font-bold text-gray-900 mb-2">Individual Report Card</h3>
+                  <p className="text-xs text-gray-500 mb-3">Professional report card for a single student.</p>
+                  <select 
+                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#A05C2B]"
+                    onChange={e => {
+                        if (e.target.value) {
+                           setSelectedPrintStudent(e.target.value);
+                           setPrintMode('individual');
+                           setTimeout(() => window.print(), 500);
+                        }
+                    }}
+                    value=""
+                  >
+                    <option value="">-- Select Student --</option>
+                    {adminReportModal.students.map((st: any) => (
+                      <option key={st.id} value={st.id}>{st.rollNumber} - {st.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              <button onClick={() => setAdminReportModal(null)} className="mt-6 w-full py-2.5 font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancel</button>
+            </div>
+          </div>
+        )}
+        
+        {/* PRINT LAYOUTS */}
+        {adminReportModal && printMode === 'class' && (
+          <div className="hidden print:block absolute inset-0 bg-white p-8 z-[100]">
+            <style>{`
+              @page { size: A4 landscape; margin: 15mm; }
+              body * { visibility: hidden; }
+              .print\\:block, .print\\:block * { visibility: visible; }
+              .print\\:block { position: absolute; left: 0; top: 0; width: 100%; margin: 0; }
+            `}</style>
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-black uppercase">Amar Jyoti Public School</h1>
+              <h2 className="text-xl font-bold mt-1">{adminReportModal.exam.name} - Class Report</h2>
+              <p className="text-lg font-semibold mt-1 text-gray-700">{adminReportModal.c}</p>
+            </div>
+            
+            <table className="w-full border-collapse border border-gray-800 text-sm">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-800 p-2 text-left">Roll No</th>
+                  <th className="border border-gray-800 p-2 text-left">Student Name</th>
+                  {adminReportModal.subjects.map((sub: string) => (
+                    <th key={sub} className="border border-gray-800 p-2 text-center">{sub}</th>
+                  ))}
+                  <th className="border border-gray-800 p-2 text-center">Total</th>
+                  <th className="border border-gray-800 p-2 text-center">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {adminReportModal.students.map((st: any) => {
+                  const marks = adminReportModal.result?.marks?.[st.id] || {};
+                  let total = 0;
+                  const subjectsWithMarks = adminReportModal.subjects.filter((sub: string) => marks[sub] !== undefined && marks[sub] !== 'N/A' && marks[sub] !== '');
+                  subjectsWithMarks.forEach((sub: string) => { total += Number(marks[sub]) || 0; });
+                  const percent = subjectsWithMarks.length > 0 ? (total / (subjectsWithMarks.length * 100)) * 100 : 0;
+                  
+                  return (
+                    <tr key={st.id}>
+                      <td className="border border-gray-800 p-2">{st.rollNumber}</td>
+                      <td className="border border-gray-800 p-2 font-bold">{st.name}</td>
+                      {adminReportModal.subjects.map((sub: string) => (
+                        <td key={sub} className="border border-gray-800 p-2 text-center">{marks[sub] !== undefined ? marks[sub] : '-'}</td>
+                      ))}
+                      <td className="border border-gray-800 p-2 text-center font-bold">{total}</td>
+                      <td className="border border-gray-800 p-2 text-center font-bold">{percent.toFixed(1)}%</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            
+            <div className="mt-16 flex justify-between px-12">
+              <div className="text-center">
+                <div className="w-48 border-b border-gray-800 mb-2"></div>
+                <p className="font-bold">Class Teacher Signature</p>
+              </div>
+              <div className="text-center">
+                <div className="w-48 border-b border-gray-800 mb-2"></div>
+                <p className="font-bold">Principal Signature</p>
+              </div>
+            </div>
+            
+            {/* Auto reset print mode */}
+            <div className="hidden">{setTimeout(() => {if(printMode) setPrintMode(null)}, 2000)}</div>
+          </div>
+        )}
+        
+        {adminReportModal && printMode === 'individual' && selectedPrintStudent && (() => {
+          const st = adminReportModal.students.find((s: any) => s.id === selectedPrintStudent);
+          if (!st) return null;
+          
+          const marks = adminReportModal.result?.marks?.[st.id] || {};
+          const subjects = Object.keys(marks).filter(sub => marks[sub] !== undefined && marks[sub] !== null && marks[sub] !== '' && marks[sub] !== 'N/A');
+          let total = 0;
+          subjects.forEach(sub => { total += Number(marks[sub]) || 0; });
+          const totalMax = subjects.length * 100;
+          const percent = totalMax > 0 ? (total / totalMax) * 100 : 0;
+          
+          const getGrade = (m: number) => {
+            if (m >= 90) return 'A1';
+            if (m >= 80) return 'A2';
+            if (m >= 70) return 'B1';
+            if (m >= 60) return 'B2';
+            if (m >= 50) return 'C1';
+            if (m >= 40) return 'C2';
+            if (m >= 33) return 'D';
+            return 'E';
+          };
+          
+          return (
+            <div className="hidden print:block absolute inset-0 bg-white p-8 z-[100]">
+              <style>{`
+                @page { size: A4; margin: 20mm; }
+                body * { visibility: hidden; }
+                .print\\:block, .print\\:block * { visibility: visible; }
+                .print\\:block { position: absolute; left: 0; top: 0; width: 100%; margin: 0; }
+              `}</style>
+              
+              <div className="border-4 border-[#A05C2B] p-8 rounded-xl relative">
+                <div className="text-center mb-8 border-b-2 border-[#A05C2B] pb-6">
+                  <div className="w-20 h-20 bg-gradient-to-br from-[#A05C2B] to-[#D4A373] rounded-full flex items-center justify-center text-white mx-auto mb-4">
+                    <span className="text-3xl font-black">AJPS</span>
+                  </div>
+                  <h1 className="text-2xl font-black text-gray-900 uppercase tracking-widest">Amar Jyoti Public School</h1>
+                  <p className="text-sm font-semibold text-gray-600 mt-1">Affiliated to CBSE, New Delhi</p>
+                  <div className="mt-4 inline-block bg-[#FDF7EE] text-[#A05C2B] px-6 py-2 rounded-full border border-[#E8DCC8] shadow-sm">
+                    <h2 className="text-lg font-bold tracking-wide">{adminReportModal.exam.name} - {adminReportModal.exam.month} Term</h2>
+                  </div>
+                </div>
+
+                <div className="bg-[#FDFBF7] p-5 rounded-xl border border-gray-200 mb-8 flex flex-wrap gap-x-12 gap-y-4">
+                  <div><p className="text-xs font-bold text-gray-500 uppercase">Student Name</p><p className="font-bold text-gray-900 text-lg">{st.name}</p></div>
+                  <div><p className="text-xs font-bold text-gray-500 uppercase">Class</p><p className="font-bold text-gray-900 text-lg">{adminReportModal.c}</p></div>
+                  <div><p className="text-xs font-bold text-gray-500 uppercase">Roll Number</p><p className="font-bold text-gray-900 text-lg">{st.rollNumber}</p></div>
+                </div>
+
+                <div className="border border-gray-200 rounded-2xl overflow-hidden mb-8 w-full">
+                  <table className="w-full text-left">
+                    <thead className="bg-[#1F2937] text-white">
+                      <tr>
+                        <th className="p-4 font-bold">Subject</th>
+                        <th className="p-4 font-bold text-center">Max Marks</th>
+                        <th className="p-4 font-bold text-center">Obtained</th>
+                        <th className="p-4 font-bold text-center">Grade</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {subjects.map((sub: any, i: number) => {
+                        const mark = Number(marks[sub]);
+                        return (
+                          <tr key={i}>
+                            <td className="p-4 font-bold text-gray-800">{sub}</td>
+                            <td className="p-4 font-semibold text-gray-500 text-center">100</td>
+                            <td className="p-4 font-bold text-gray-900 text-center">{mark}</td>
+                            <td className="p-4 font-bold text-[#A05C2B] text-center">{getGrade(mark)}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                    <tfoot className="bg-[#FDF7EE] border-t-2 border-gray-200">
+                      <tr>
+                        <td className="p-4 font-black text-gray-900 text-right">TOTAL:</td>
+                        <td className="p-4 font-black text-gray-600 text-center">{totalMax}</td>
+                        <td className="p-4 font-black text-gray-900 text-center">{total}</td>
+                        <td className="p-4 font-bold text-[#A05C2B] text-center">{percent.toFixed(1)}%</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                <div className="flex justify-between items-end pt-12 px-8">
+                  <div className="text-center">
+                    <div className="w-40 border-b-2 border-gray-400 mb-2"></div>
+                    <p className="text-xs font-bold text-gray-500 uppercase">Class Teacher Signature</p>
+                  </div>
+                  <div className="text-center relative">
+                    <img src="/school-seal.png" alt="" className="absolute bottom-6 -left-8 w-24 h-24 opacity-20 mix-blend-multiply" />
+                    <div className="w-40 border-b-2 border-gray-400 mb-2 relative z-10"></div>
+                    <p className="text-xs font-bold text-gray-500 uppercase">Principal Signature</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="hidden">{setTimeout(() => {if(printMode) { setPrintMode(null); setAdminReportModal(null); setSelectedPrintStudent(''); }}, 2000)}</div>
+            </div>
+          )
+        })()}
+
+
+{publishWarningModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1F2937]/40 backdrop-blur-sm animate-in fade-in">
+            <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-2xl relative">
+              <h2 className="text-xl font-bold text-red-600 mb-2 flex items-center gap-2"><AlertTriangle className="w-6 h-6"/> Missing Marks</h2>
+              <p className="text-sm text-gray-600 mb-6">You are about to publish the result but {publishWarningModal.missingCount} marks are missing or not entered by teachers. Do you want to publish anyway?</p>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setPublishWarningModal(null)} className="px-4 py-2 font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button onClick={() => executePublish(publishWarningModal.examId, publishWarningModal.classId)} className="px-4 py-2 font-bold bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md">Publish Anyway</button>
+              </div>
+            </div>
+          </div>
+        )}
+<Toast message={toastMsg} />
       </div>
     );
   }
@@ -1241,7 +1441,19 @@ export function AdminExam() {
           </div>
         )}
       </div>
-      <Toast message={toastMsg} />
+      {publishWarningModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1F2937]/40 backdrop-blur-sm animate-in fade-in">
+            <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-2xl relative">
+              <h2 className="text-xl font-bold text-red-600 mb-2 flex items-center gap-2"><AlertTriangle className="w-6 h-6"/> Missing Marks</h2>
+              <p className="text-sm text-gray-600 mb-6">You are about to publish the result but {publishWarningModal.missingCount} marks are missing or not entered by teachers. Do you want to publish anyway?</p>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setPublishWarningModal(null)} className="px-4 py-2 font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button onClick={() => executePublish(publishWarningModal.examId, publishWarningModal.classId)} className="px-4 py-2 font-bold bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md">Publish Anyway</button>
+              </div>
+            </div>
+          </div>
+        )}
+<Toast message={toastMsg} />
     </div>
   );
 }

@@ -174,15 +174,15 @@ export function MarksEntry({
         </div>
       )}
       <div className="w-full overflow-x-auto overflow-y-hidden bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 custom-scrollbar">
-        <table className="w-full text-left text-sm" style={{ minWidth: '500px' }}>
+        <table className="w-full text-left text-sm" >
           <thead className="bg-[#FDFBF7] border-b border-gray-200">
             <tr>
-              <th className="p-4 font-bold text-gray-600 w-24">Roll No.</th>
-              <th className="p-4 font-bold text-gray-600">Student Name</th>
+              <th className="p-2 md:p-4 font-bold text-gray-600 text-xs md:text-sm">Roll No.</th>
+              <th className="p-2 md:p-4 font-bold text-gray-600 text-xs md:text-sm">Student Name</th>
               {sectionFilter === 'all' && (
-                <th className="p-4 font-bold text-gray-600">Section</th>
+                <th className="p-2 md:p-4 font-bold text-gray-600 text-xs md:text-sm">Section</th>
               )}
-              <th className="p-4 font-bold text-gray-600 w-48 text-right">Marks / {currentMaxMarks}</th>
+              <th className="p-2 md:p-4 font-bold text-gray-600 text-right text-xs md:text-sm">Marks / {currentMaxMarks}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -191,8 +191,8 @@ export function MarksEntry({
               const displayVal = val !== undefined ? val : '';
               return (
                 <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="p-4 font-bold text-gray-400">{student.rollNumber || 'N/A'}</td>
-                  <td className="p-4 font-semibold text-gray-800">
+                  <td className="p-2 md:p-4 font-bold text-gray-400 text-xs md:text-sm">{student.rollNumber || 'N/A'}</td>
+                  <td className="p-2 md:p-4 font-semibold text-gray-800 text-xs md:text-sm">
                     <div className="flex items-center gap-2">
                       {student.name}
                       {isSubjectLocked && (
@@ -203,11 +203,11 @@ export function MarksEntry({
                     </div>
                   </td>
                   {sectionFilter === 'all' && (
-                    <td className="p-4 font-bold text-gray-500">
+                    <td className="p-2 md:p-4 font-bold text-gray-500 text-xs md:text-sm">
                       <span className="bg-gray-100 px-2 py-1 rounded text-xs">{student.section || student.sectionId}</span>
                     </td>
                   )}
-                  <td className="p-4 text-right flex items-center justify-end gap-2">
+                  <td className="p-2 md:p-4 text-right flex items-center justify-end gap-1 md:gap-2">
                     {isFormDisabled ? (
                       <input 
                         type="text" 

@@ -6,6 +6,7 @@ export const generateRollNumber = (className: string, index: number) => {
 };
 
 // Strip the static school prefix "132426" from roll numbers for compact display
+// e.g. "13242612001" → "12001", "1324268042" → "8042"
 export const formatRollNo = (roll: string | undefined): string => {
   if (!roll) return 'N/A';
   return roll.replace(/^132426/, '');

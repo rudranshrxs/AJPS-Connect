@@ -270,7 +270,7 @@ export function AdminAttendance() {
 
   return (
 
-      <div className="bg-slate-50 min-h-screen pb-24">
+      <div className="bg-slate-50 min-h-screen pb-24 overflow-x-hidden w-full max-w-full">
       <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
         
         <div>
@@ -464,83 +464,68 @@ export function AdminAttendance() {
                   <span className="text-sm text-gray-500">Total Students: {totalStudents}</span>
                 </div>
                 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-max">
-                    <thead>
-                      <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-                        <th className="py-3 px-4 font-medium w-16 text-center">#</th>
-                        <th className="py-3 px-4 font-medium">Student Name</th>
-                        <th className="py-3 px-4 font-medium w-32">Roll No.</th>
-                        <th className="py-3 px-4 font-medium w-32">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allStudents.map((student, idx) => {
-                        const status = attendance[student.id];
-                        const isOnLeave = checkIfOnLeave(student.id, getSystemDate().toISOString().split('T')[0]);
-                        
-                        return (
-                          <tr key={student.id} className={`border-b border-gray-50 last:border-0 transition-colors ${isLocked ? 'opacity-70' : 'hover:bg-gray-50'}`}>
-                            <td className="py-3 px-4 text-center text-sm text-gray-500">{idx + 1}</td>
-                            <td 
-                              className="py-3 px-4 group"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold shrink-0 group-hover:bg-blue-100 transition-colors">
-                                  {student.name.charAt(0)}
-                                </div>
-                                <span className="font-medium text-gray-900 text-sm group-hover:text-blue-600 transition-colors">{student.name}</span>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4 text-sm text-gray-500">{student.rollNumber || 'N/A'}</td>
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-2">
-                                {isOnLeave ? (
-                                  <div className="px-3 py-1.5 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-md text-xs font-medium">
-                                    On Leave
-                                  </div>
-                                ) : (
-                                  <>
-                                    <button
-                                      onClick={() => handleMark(student.id, 'Present')}
-                                      disabled={isLocked}
-                                      className={`w-8 h-8 rounded-md flex items-center justify-center font-medium text-sm transition-colors ${
-                                        status === 'Present' 
-                                          ? 'bg-green-600 text-white' 
-                                          : status === 'Absent' 
-                                            ? 'bg-gray-100 text-gray-400' 
-                                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                                      }`}
-                                    >
-                                      P
-                                    </button>
-                                    <button
-                                      onClick={() => handleMark(student.id, 'Absent')}
-                                      disabled={isLocked}
-                                      className={`w-8 h-8 rounded-md flex items-center justify-center font-medium text-sm transition-colors ${
-                                        status === 'Absent' 
-                                          ? 'bg-red-500 text-white' 
-                                          : status === 'Present' 
-                                            ? 'bg-gray-100 text-gray-400' 
-                                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                                      }`}
-                                    >
-                                      A
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {allStudents.length === 0 && (
-                        <tr>
-                          <td colSpan={4} className="py-8 text-center text-gray-500">No students found in this class section.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div className="flex flex-col divide-y divide-gray-50">
+                  {allStudents.map((student, idx) => {
+                    const status = attendance[student.id];
+                    const isOnLeave = checkIfOnLeave(student.id, getSystemDate().toISOString().split('T')[0]);
+                    const shortRoll = student.rollNumber ? student.rollNumber.replace(/^132426/, '') : 'N/A';
+                    
+                    return (
+                      <div key={student.id} className={`flex items-center justify-between p-3 border-b border-gray-50 last:border-0 transition-all duration-300 ease-in-out ${isLocked ? 'opacity-70' : 'hover:bg-gray-50'}`}>
+                        {/* Left Side */}
+                        <div className="flex-1 min-w-0 flex items-center gap-3">
+                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs md:text-sm font-bold shrink-0">
+                            {student.name.charAt(0)}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm md:text-base font-semibold truncate text-gray-900">{student.name}</span>
+                            <span className="text-[10px] md:text-xs text-gray-500 truncate">Roll: {student.rollNumber ? String(student.rollNumber).slice(-4) : 'N/A'}</span>
+                          </div>
+                        </div>
+
+                        {/* Right Side: P/A Buttons */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isOnLeave ? (
+                            <div className="px-3 py-1.5 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-md text-xs font-medium">
+                              On Leave
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleMark(student.id, 'Present')}
+                                disabled={isLocked}
+                                className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-bold text-sm transition-colors ${
+                                  status === 'Present' 
+                                    ? 'bg-green-600 text-white shadow-sm' 
+                                    : status === 'Absent' 
+                                      ? 'bg-gray-100 text-gray-400' 
+                                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                }`}
+                              >
+                                P
+                              </button>
+                              <button
+                                onClick={() => handleMark(student.id, 'Absent')}
+                                disabled={isLocked}
+                                className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-bold text-sm transition-colors ${
+                                  status === 'Absent' 
+                                    ? 'bg-red-500 text-white shadow-sm' 
+                                    : status === 'Present' 
+                                      ? 'bg-gray-100 text-gray-400' 
+                                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                }`}
+                              >
+                                A
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {allStudents.length === 0 && (
+                    <div className="py-8 text-center text-gray-500">No students found in this class section.</div>
+                  )}
                 </div>
               </div>
 
@@ -683,7 +668,7 @@ export function AdminAttendance() {
                                         <p className="font-semibold text-gray-900">{student.name}</p>
                                         {student.rollNumber && (
                                           <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-white px-2 py-0.5 rounded border border-gray-100">Roll: {student.rollNumber}</span>
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-white px-2 py-0.5 rounded border border-gray-100">Roll: {student.rollNumber?.replace(/^132426/, '') || 'N/A'}</span>
                                           </div>
                                         )}
                                       </div>

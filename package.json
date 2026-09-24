@@ -19,6 +19,7 @@
     "cloudflared": "^0.7.3",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "firebase": "^11.10.0",
     "framer-motion": "^13.4.0",
     "gi": "^1.0.0",
     "git": "^0.1.5",

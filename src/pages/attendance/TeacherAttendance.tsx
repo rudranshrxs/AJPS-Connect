@@ -663,7 +663,7 @@ export function TeacherAttendance() {
                   {classDetails.students.map((student, idx) => {
                     const status = attendance[student.id];
                     const isOnLeave = checkIfOnLeave(student.id, activeDate);
-                    const last4Digits = student.rollNumber ? student.rollNumber.slice(-4) : 'N/A';
+                    const shortRoll = student.rollNumber ? student.rollNumber.replace(/^132426/, '') : 'N/A';
                     
                     return (
                       <div key={student.id} className={`flex items-center justify-between p-3 border-b border-gray-50 last:border-0 transition-all duration-300 ease-in-out ${isLocked ? 'opacity-70' : 'hover:bg-gray-50'}`}>
@@ -677,7 +677,7 @@ export function TeacherAttendance() {
                           </div>
                           <div className="flex flex-col min-w-0">
                             <span className="text-sm md:text-base font-semibold truncate text-gray-900 group-hover:text-blue-600 transition-colors">{student.name}</span>
-                            <span className="text-[10px] md:text-xs text-gray-500 truncate">Roll: {last4Digits}</span>
+                            <span className="text-[10px] md:text-xs text-gray-500 truncate">Roll: {shortRoll}</span>
                           </div>
                         </div>
 

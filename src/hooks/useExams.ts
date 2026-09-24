@@ -177,13 +177,13 @@ export function useExams() {
     window.dispatchEvent(new Event('exams_updated'));
   };
 
-  const addDatesheet = (examId: string, classes: string[], rows: DatesheetRow[]) => {
+  const addDatesheets = (dsArray: Omit<Datesheet, 'id'>[]) => {
     let newDatesheets = [...datesheets];
-    newDatesheets.push({
-      id: `ds_${Date.now()}`,
-      examId,
-      classes,
-      rows
+    dsArray.forEach((ds, i) => {
+      newDatesheets.push({
+        id: `ds_${Date.now()}_${i}`,
+        ...ds
+      });
     });
     localStorage.setItem(DATESHEETS_KEY, JSON.stringify(newDatesheets));
     setDatesheets(newDatesheets);
@@ -271,17 +271,27 @@ export function useExams() {
     window.dispatchEvent(new Event('exams_updated'));
   };
 
-  return {
-    exams,
-    datesheets,
-    results,
+  const examsWithDerivedStatus = exams.map(e => {
+      const examDs = datesheets.filter(d => d.examId === e.id);
+      const allDates = examDs.flatMap(d => (d.rows || (d as any).schedule || []).map((r: any) => new Date(r.date).getTime())).filter(Boolean);
+      const firstDate = allDates.length > 0 ? Math.min(...allDates) : null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const autoUnlocked = firstDate ? today.getTime() > firstDate + 24*60*60*1000 : false;
+      return { ...e, isMarksEntryOpen: e.isMarksEntryOpen || autoUnlocked };
+    });
+  
+    return {
+      exams: examsWithDerivedStatus,
+      datesheets,
+      results,
     addExam,
     updateExam,
     deleteExam,
     toggleMarksEntry,
     postponeExam,
     deleteDatesheetsForExam,
-    addDatesheet,
+    addDatesheets,
     saveMarks,
     publishResult,
     unlockMarks
