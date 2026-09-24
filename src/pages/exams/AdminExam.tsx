@@ -47,7 +47,7 @@ function ScheduleEditor({ rows, onSubjectChange, onRemoveRow }: { rows: { subjec
 export function AdminExam() {
   const { currentUser } = useAuth();
   const { triggerSuccess, triggerError } = useSuccess();
-  const { exams, updateExam, addExam, deleteExam, toggleMarksEntry, postponeExam, deleteDatesheetsForExam, addDatesheets, datesheets, results, publishResult } = useExams();
+  const { exams, updateExam, addExam, deleteExam, toggleMarksEntry, postponeExam, deleteDatesheetsForExam, addDatesheet, addDatesheets, datesheets, results, publishResult } = useExams();
 
   const [isCreating, setIsCreating] = useState(false);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
@@ -61,10 +61,21 @@ export function AdminExam() {
   const [adminDraftSection, setAdminDraftSection] = useState<string>('');
   const [adminDraftCombined, setAdminDraftCombined] = useState<boolean>(false);
 
+  const [adminReportModal, setAdminReportModal] = useState<{ exam: Exam; classId: string; students: any[]; result: any; subjects: string[]; c: string } | null>(null);
+  const [printMode, setPrintMode] = useState<'class' | 'individual' | null>(null);
+  const [selectedPrintStudent, setSelectedPrintStudent] = useState<string | null>(null);
 
   const [toastMsg, setToastMsg] = useState('');
 
   const [isPostponeModalOpen, setIsPostponeModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setPrintMode(null);
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
 
   // Syllabus state
   const [expandedSyllabusClass, setExpandedSyllabusClass] = useState<string | null>(null);
@@ -651,7 +662,7 @@ export function AdminExam() {
                               {isPublished && <span className="bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1 rounded-md">Published</span>}
                             </div>
                             <div className="flex gap-2">
-                              <button onClick={() => setAdminReportModal({ exam: selectedExam, classId: classIdToMatch, students: studentList, result: classResult, subjects: allSubjects, c })} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-[#A05C2B] text-[#A05C2B] text-xs font-bold rounded-lg shadow-sm hover:bg-[#FDF7EE] transition-colors">
+                              <button onClick={() => setAdminReportModal({ exam: selectedExam, classId: classIdToMatch, students: studentList, result: classResult, subjects: subjectsArr, c })} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-[#A05C2B] text-[#A05C2B] text-xs font-bold rounded-lg shadow-sm hover:bg-[#FDF7EE] transition-colors">
                                 <Printer className="w-4 h-4" /> Generate Report
                               </button>
                               {!isPublished && (
@@ -980,14 +991,7 @@ export function AdminExam() {
                 </div>
               </div>
 
-              {(() => {
-                const examDatesheets = datesheets.filter(d => d.examId === selectedExam.id);
-                const allDates = examDatesheets.flatMap(d => (d.rows || (d as any).schedule || []).map((r: any) => new Date(r.date).getTime())).filter(Boolean);
-                const firstDate = allDates.length > 0 ? Math.min(...allDates) : null;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-              })()}
+
 
               <div className="bg-white p-6 md:p-8 rounded-2xl border border-gray-200 shadow-sm">
                 {!isDatesheetLocked && (
@@ -1248,8 +1252,6 @@ export function AdminExam() {
               </div>
             </div>
             
-            {/* Auto reset print mode */}
-            <div className="hidden">{setTimeout(() => {if(printMode) setPrintMode(null)}, 2000)}</div>
           </div>
         )}
         
@@ -1349,7 +1351,6 @@ export function AdminExam() {
                 </div>
               </div>
               
-              <div className="hidden">{setTimeout(() => {if(printMode) { setPrintMode(null); setAdminReportModal(null); setSelectedPrintStudent(''); }}, 2000)}</div>
             </div>
           )
         })()}

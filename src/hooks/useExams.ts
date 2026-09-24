@@ -271,6 +271,10 @@ export function useExams() {
     window.dispatchEvent(new Event('exams_updated'));
   };
 
+  const addDatesheet = (examId: string, classes: string[], rows: DatesheetRow[]) => {
+    addDatesheets([{ examId, classes, rows }]);
+  };
+
   const examsWithDerivedStatus = exams.map(e => {
       const examDs = datesheets.filter(d => d.examId === e.id);
       const allDates = examDs.flatMap(d => (d.rows || (d as any).schedule || []).map((r: any) => new Date(r.date).getTime())).filter(Boolean);
@@ -291,6 +295,7 @@ export function useExams() {
     toggleMarksEntry,
     postponeExam,
     deleteDatesheetsForExam,
+    addDatesheet,
     addDatesheets,
     saveMarks,
     publishResult,

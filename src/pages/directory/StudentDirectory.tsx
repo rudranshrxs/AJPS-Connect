@@ -23,6 +23,17 @@ export function StudentDirectory() {
   const [isClassTeacher, setIsClassTeacher] = useState(true);
   const [visibleCount, setVisibleCount] = useState(20);
 
+  // New states for import & filtering
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    classId: '',
+    transport: '',
+    feeStatus: '',
+    lowAttendance: false,
+    failedLastTest: false
+  });
+
   useEffect(() => {
     setVisibleCount(20);
   }, [searchQuery, filters]);
@@ -36,17 +47,6 @@ export function StudentDirectory() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // New states for import & filtering
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    classId: '',
-    transport: '',
-    feeStatus: '',
-    lowAttendance: false,
-    failedLastTest: false
-  });
 
   useEffect(() => {
     let onlyStudents = [...globalStudents];
