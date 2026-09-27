@@ -412,18 +412,18 @@ export function AdminTimetable() {
                     setCurrentTimetable(prev => ({ ...prev, isLocked: false }));
                     setIsEditing(true);
                   }}
-                  className="bg-[#1F2937] text-white px-6 py-2 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-sm flex items-center gap-2"
+                  className="bg-[#1F2937] text-white px-3 py-1.5 md:px-6 md:py-2 rounded-lg font-bold hover:bg-gray-800 transition-colors shadow-sm flex items-center gap-1 md:gap-2 text-xs md:text-base"
                 >
-                  <Edit3 className="w-4 h-4" /> Unlock & Edit Timetable
+                  <Edit3 className="w-3 h-3 md:w-4 md:h-4" /> Unlock & Edit
                 </button>
               ) : (
                 <>
                   <button 
                     onClick={handleSave}
                     disabled={!selectedClass || !selectedSection || isProcessing}
-                    className="bg-white/60 text-gray-800 px-6 py-2 rounded-lg font-bold hover:bg-white/80 disabled:opacity-50 transition-colors shadow-sm flex items-center gap-2"
+                    className="bg-white/60 text-gray-800 px-2 py-1.5 md:px-6 md:py-2 text-xs md:text-base rounded-lg font-bold hover:bg-white/80 disabled:opacity-50 transition-colors shadow-sm flex items-center gap-1 md:gap-2"
                   >
-                    <Save className="w-4 h-4" /> Save Draft
+                    <Save className="w-3 h-3 md:w-4 md:h-4" /> Save Draft
                   </button>
                   <button 
                     onClick={() => {
@@ -431,10 +431,10 @@ export function AdminTimetable() {
                       setIsEditing(false);
                     }}
                     disabled={!selectedClass || !selectedSection || isProcessing}
-                    className="bg-[#A05C2B] text-white px-6 py-2 rounded-lg font-bold hover:bg-[#8B4E24] disabled:opacity-50 transition-colors shadow-sm flex items-center gap-2"
+                    className="bg-[#A05C2B] text-white px-2 py-1.5 md:px-6 md:py-2 text-xs md:text-base rounded-lg font-bold hover:bg-[#8B4E24] disabled:opacity-50 transition-colors shadow-sm flex items-center gap-1 md:gap-2"
                   >
-                    <Lock className="w-4 h-4" /> 
-                    {currentTimetable.isLocked ? 'Save & Lock Updates' : 'Lock & Publish'}
+                    <Lock className="w-3 h-3 md:w-4 md:h-4" /> 
+                    {currentTimetable.isLocked ? 'Lock Updates' : 'Lock & Publish'}
                   </button>
                 </>
               )}

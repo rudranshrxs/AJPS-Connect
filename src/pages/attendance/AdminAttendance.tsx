@@ -190,7 +190,7 @@ export function AdminAttendance() {
         title: 'Attendance Alert',
         message: 'You were marked absent today.',
         type: 'warning',
-        actionPath: '/student/dashboard',
+        actionPath: '/dashboard',
         actionLabel: 'View'
       });
     }
@@ -269,9 +269,7 @@ export function AdminAttendance() {
   const classNameDisplay = selectedClassOption ? selectedClassOption.name : 'Unknown Class';
 
   return (
-
-      <div className="bg-slate-50 min-h-screen pb-24 overflow-x-hidden w-full max-w-full">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="w-full max-w-full px-3">
         
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900">Admin Attendance</h1>
@@ -279,7 +277,7 @@ export function AdminAttendance() {
         </div>
 
         <div>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 md:p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Select View</label>
@@ -388,7 +386,7 @@ export function AdminAttendance() {
         {/* Module 1: Mark Attendance */}
         {targetType === 'Students' && activeTab === 'mark' && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-4 md:p-6 bg-gray-50/30">
+            <div className="p-1 md:p-6 bg-gray-50/30">
         {targetType === 'Students' && isSunday && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6 flex flex-col items-center justify-center text-red-600 shadow-sm animate-in fade-in zoom-in duration-300">
             <Lock className="w-12 h-12 mb-3" />
@@ -409,7 +407,7 @@ export function AdminAttendance() {
         <div className="mb-8 flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm w-fit">
           <label className="font-bold text-gray-800">Select Date:</label>
           <div className="flex items-center bg-gray-50 border border-gray-200 p-2 rounded-lg">
-            <Calendar className="w-5 h-5 text-gray-400 mr-2" />
+            <Calendar className="w-5 h-5 text-gray-400 " />
             <input 
               type="date" 
               value={activeDate}
@@ -423,7 +421,7 @@ export function AdminAttendance() {
         {((targetType === 'Students' && !(isSunday || isHoliday)) || targetType !== 'Students') && (
           <div className={`transition-all duration-300`}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+              <div className="w-full p-3 rounded-xl bg-white">
                 <div className="bg-green-50 text-green-600 rounded-full w-12 h-12 flex items-center justify-center shrink-0">
                   <Users className="w-6 h-6" />
                 </div>
@@ -434,7 +432,7 @@ export function AdminAttendance() {
                 </div>
               </div>
               
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+              <div className="w-full p-3 rounded-xl bg-white">
                 <div className="bg-green-100 text-green-700 rounded-full w-12 h-12 flex items-center justify-center shrink-0 font-bold text-xl">
                   P
                 </div>
@@ -445,7 +443,7 @@ export function AdminAttendance() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+              <div className="w-full p-3 rounded-xl bg-white">
                 <div className="bg-red-100 text-red-600 rounded-full w-12 h-12 flex items-center justify-center shrink-0 font-bold text-xl">
                   A
                 </div>
@@ -457,8 +455,8 @@ export function AdminAttendance() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="w-full">
+              <div className="w-[calc(100%+16px)] -mx-2 md:mx-0 md:w-full bg-transparent md:bg-white rounded-none md:rounded-2xl shadow-none md:shadow-sm border-none md:border border-gray-100 overflow-hidden">
                 <div className="p-5 flex justify-between items-center border-b border-gray-100">
                   <h3 className="font-bold text-gray-900 text-lg">{classNameDisplay}</h3>
                   <span className="text-sm text-gray-500">Total Students: {totalStudents}</span>
@@ -471,20 +469,20 @@ export function AdminAttendance() {
                     const shortRoll = student.rollNumber ? student.rollNumber.replace(/^132426/, '') : 'N/A';
                     
                     return (
-                      <div key={student.id} className={`flex items-center justify-between p-3 border-b border-gray-50 last:border-0 transition-all duration-300 ease-in-out ${isLocked ? 'opacity-70' : 'hover:bg-gray-50'}`}>
+                      <div key={student.id} className="flex items-center justify-between w-full min-w-0 p-3 border-b border-gray-50 last:border-0">
                         {/* Left Side */}
-                        <div className="flex-1 min-w-0 flex items-center gap-3">
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs md:text-sm font-bold shrink-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-10 h-10 md:w-10 md:h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm md:text-sm font-bold shrink-0">
                             {student.name.charAt(0)}
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-sm md:text-base font-semibold truncate text-gray-900">{student.name}</span>
-                            <span className="text-[10px] md:text-xs text-gray-500 truncate">Roll: {student.rollNumber ? String(student.rollNumber).slice(-4) : 'N/A'}</span>
+                            <span className="text-base md:text-base font-semibold truncate text-gray-900">{student.name}</span>
+                            <span className="text-xs md:text-xs text-gray-500 truncate">Roll: {student.rollNumber ? String(student.rollNumber).slice(-4) : 'N/A'}</span>
                           </div>
                         </div>
 
                         {/* Right Side: P/A Buttons */}
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex gap-1 shrink-0">
                           {isOnLeave ? (
                             <div className="px-3 py-1.5 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-md text-xs font-medium">
                               On Leave
@@ -494,9 +492,9 @@ export function AdminAttendance() {
                               <button
                                 onClick={() => handleMark(student.id, 'Present')}
                                 disabled={isLocked}
-                                className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-bold text-sm transition-colors ${
+                                className={`w-10 h-10 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-bold text-sm md:text-sm transition-colors ${
                                   status === 'Present' 
-                                    ? 'bg-green-600 text-white shadow-sm' 
+                                    ? 'bg-green-600 text-white shadow-sm scale-105' 
                                     : status === 'Absent' 
                                       ? 'bg-gray-100 text-gray-400' 
                                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -507,9 +505,9 @@ export function AdminAttendance() {
                               <button
                                 onClick={() => handleMark(student.id, 'Absent')}
                                 disabled={isLocked}
-                                className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-bold text-sm transition-colors ${
+                                className={`w-10 h-10 md:w-10 md:h-10 rounded-lg flex items-center justify-center font-bold text-sm md:text-sm transition-colors ${
                                   status === 'Absent' 
-                                    ? 'bg-red-500 text-white shadow-sm' 
+                                    ? 'bg-red-500 text-white shadow-sm scale-105' 
                                     : status === 'Present' 
                                       ? 'bg-gray-100 text-gray-400' 
                                       : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
@@ -527,70 +525,34 @@ export function AdminAttendance() {
                     <div className="py-8 text-center text-gray-500">No students found in this class section.</div>
                   )}
                 </div>
-              </div>
-
-              <div className="lg:col-span-4 flex flex-col space-y-4">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center flex flex-col items-center">
-                  <h4 className="font-semibold text-gray-900 mb-6 w-full text-left">Attendance Summary</h4>
-                  
-                  <div 
-                    className="w-40 h-40 rounded-full flex items-center justify-center mb-6 relative"
-                    style={{ background: donutGradient }}
-                  >
-                    <div className="w-32 h-32 bg-white rounded-full flex flex-col items-center justify-center absolute">
-                      <span className="text-2xl font-bold text-gray-900">{presentPercentage}%</span>
-                      <span className="text-xs text-gray-500">Present</span>
-                    </div>
+                <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="bg-blue-50 text-blue-800 p-3 rounded-xl text-sm flex items-start gap-2 flex-1">
+                    <Info className="w-5 h-5 shrink-0" />
+                    <p>Mark attendance for all students, then click 'Submit Today'.</p>
                   </div>
-
-                  <div className="w-full space-y-3">
-                    <div className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                        Present
-                      </div>
-                      <span className="font-medium text-gray-900">{presentCount} <span className="text-gray-400 font-normal">({presentPercentage}%)</span></span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                        Absent
-                      </div>
-                      <span className="font-medium text-gray-900">{absentCount} <span className="text-gray-400 font-normal">({absentPercentage}%)</span></span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm flex items-start gap-3">
-                  <Info className="w-5 h-5 shrink-0 mt-0.5" />
-                  <p>Please mark attendance for all students and click on 'Submit Today' to finalize.</p>
-                </div>
-
-                <div className="pt-2">
                   <button
                     onClick={handleLock}
                     disabled={isLocked}
-                    className={`w-full rounded-xl py-4 flex items-center justify-center gap-2 font-medium text-lg transition-colors ${
+                    className={`px-8 py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-base transition-colors ${
                       isLocked ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#0B1E40] text-white hover:bg-blue-900 shadow-md'
                     }`}
                   >
                     <CheckCircle className="w-5 h-5" /> 
                     {isLocked ? 'Submitted' : 'Submit Today'}
                   </button>
-                  <p className="text-center text-xs text-gray-500 mt-3">You can edit submitted attendance from the History tab.</p>
                 </div>
               </div>
             </div>
           </div>
         )}
-      </div>
-    </div>
-  )}
+            </div>
+          </div>
+        )}
 
         {/* Module 2: Attendance History */}
         {activeTab === 'history' && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-4 md:p-6 bg-white">
+            <div className="p-1 md:p-6 bg-white">
             {targetType === 'Students' && (
               <div className="flex gap-2 bg-gray-100 p-1 rounded-xl mb-4 w-full md:w-fit mx-auto md:mx-0">
                 <button 
@@ -773,7 +735,7 @@ export function AdminAttendance() {
         {/* Module 3: Leave Requests */}
         {activeTab === 'leaves' && (
           <div id="leave-requests-section" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-4 md:p-6 bg-gray-50/30">
+            <div className="p-1 md:p-6 bg-gray-50/30">
               <h3 className="font-bold text-gray-900 mb-6">Leave Requests</h3>
               {adminLeaves.length === 0 ? (
                 <p className="text-gray-500 font-medium text-center py-8">No leave requests found.</p>
@@ -781,7 +743,7 @@ export function AdminAttendance() {
                 <div key={i} className="mb-4 bg-white border border-gray-100 p-5 rounded-xl shadow-sm">
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <h4 className="font-bold text-gray-900">{leave.studentName} <span className="text-xs font-normal text-gray-500 ml-2">({leave.role || 'Student'})</span></h4>
+                      <h4 className="font-bold text-gray-900">{leave.studentName} <span className="text-xs font-normal text-gray-500 ">({leave.role || 'Student'})</span></h4>
                       <p className="text-xs text-gray-500 mt-1">From: {new Date(leave.fromDate).toLocaleDateString()} To: {new Date(leave.toDate).toLocaleDateString()}</p>
                     </div>
                     <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-md ${
@@ -855,6 +817,5 @@ export function AdminAttendance() {
         </AnimatePresence>
         </div>
       </div>
-    </div>
   );
 }

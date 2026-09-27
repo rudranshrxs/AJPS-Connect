@@ -11,6 +11,7 @@ import { useAcademic } from '../../context/academicContext';
 import { MarksEntry } from '../../components/academic/MarksEntry';
 import { SyllabusList } from '../../components/academic/SyllabusList';
 import { ExamCard } from '../../components/exams/ExamCard';
+import { getExamStatusText } from '../../utils/examUtils';
 import { hasDuplicateSyllabus, filterAvailableSubjects } from '../../utils/syllabusUtils';
 
 export function TeacherExam() {
@@ -39,6 +40,7 @@ export function TeacherExam() {
   const [students, setStudents] = useState<any[]>([]);
   const [existingMarks, setExistingMarks] = useState<Record<string, Record<string, number>>>({});
   
+  const [isDraftTableFullscreen, setIsDraftTableFullscreen] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [isSubjectLocked, setIsSubjectLocked] = useState(false);
   const [isEntryOpen, setIsEntryOpen] = useState(true);
@@ -92,13 +94,14 @@ export function TeacherExam() {
 
   useEffect(() => {
     if (selectedExam && selectedClassId) {
-      if (activeTab === 'marks') {
-        const users = JSON.parse(localStorage.getItem('ajps_users') || '[]');
-        const classes = JSON.parse(localStorage.getItem('ajps_classes') || '[]');
+      const classes = JSON.parse(localStorage.getItem('ajps_classes') || '[]');
+      const cls = classes.find((c: any) => c.className === selectedClassId || c.id === selectedClassId);
+      
+      if (cls) {
+        setActiveClass(cls);
         
-        const cls = classes.find((c: any) => c.className === selectedClassId || c.id === selectedClassId);
-        if (cls) {
-          setActiveClass(cls);
+        if (activeTab === 'marks') {
+          const users = JSON.parse(localStorage.getItem('ajps_users') || '[]');
           const activeExamClassId = cls.id;
           
           let targetStudents = users.filter((u: any) => u.role === "Student" && u.classId === activeExamClassId);
@@ -153,11 +156,10 @@ export function TeacherExam() {
           if (selectedExam.isPublished) anyPublished = true;
           
           const examDatesheets = datesheets.filter((d: any) => d.examId === selectedExam.id);
-          const allDates = examDatesheets.flatMap((d: any) => (d.rows || d.schedule || []).map((r: any) => new Date(r.date).getTime())).filter(Boolean);
-          const firstDate = allDates.length > 0 ? Math.min(...allDates) : null;
-          const today = getSystemDate();
-          today.setHours(0,0,0,0);
-          const isAutoUnlocked = firstDate ? today.getTime() >= firstDate : false;
+          const allDatesStr = examDatesheets.flatMap((d: any) => (d.rows || d.schedule || []).map((r: any) => r.date)).filter(Boolean).sort();
+          const firstDateStr = allDatesStr.length > 0 ? allDatesStr[0] : null;
+          const todayStr = getSystemDate().toISOString().split('T')[0];
+          const isAutoUnlocked = firstDateStr ? todayStr > firstDateStr : false;
           
           setIsPublished(anyPublished);
           setIsSubjectLocked(anyLocked);
@@ -407,6 +409,7 @@ export function TeacherExam() {
       isExamOver = getSystemDate() > new Date(latestDate + 'T00:00:00');
       isSyllabusLocked = getSystemDate() >= new Date(earliestDate + 'T00:00:00');
     }
+    const examStatusText = getExamStatusText(selectedExam, allDates);
     
     // Also lock syllabus if marks entry is explicitly unlocked by Admin
     if (selectedExam.isMarksEntryOpen) {
@@ -416,7 +419,7 @@ export function TeacherExam() {
     // ── RBAC GUARD: Unauthorized class access ──────────────────────────────
     if (selectedClassId && !applicableClasses.some(ac => ac?.toLowerCase().trim() === selectedClassId?.toLowerCase().trim())) {
       return (
-        <div className="p-3 md:p-8 max-w-5xl mx-auto space-y-4 min-h-[calc(100vh-4rem)] pb-24 animate-in fade-in zoom-in-95 duration-300">
+    <div className="w-full max-w-full px-3">
           <button onClick={() => { setSelectedExam(null); setSelectedClassId(''); }} className="text-sm font-bold text-gray-500 hover:text-gray-800 flex items-center gap-2">
             <ArrowLeft className="w-4 h-4"/> Back to Exams
           </button>
@@ -430,7 +433,7 @@ export function TeacherExam() {
     }
 
     return (
-      <div className="p-3 md:p-8 max-w-5xl mx-auto space-y-4 md:space-y-6 min-h-[calc(100vh-4rem)] pb-24 animate-in fade-in zoom-in-95 duration-300">
+      <div className="p-3 md:p-8 max-w-full mx-auto space-y-4 md:space-y-6 min-h-[calc(100vh-4rem)] pb-24 animate-in fade-in zoom-in-95 duration-300">
         <button onClick={() => setSelectedExam(null)} className="text-sm font-bold text-gray-500 hover:text-gray-800 flex items-center gap-2">
           <ArrowLeft className="w-4 h-4"/> Back to Exams
         </button>
@@ -448,11 +451,14 @@ export function TeacherExam() {
                   <span className="bg-amber-100 text-amber-800 text-xs font-black px-3 py-1 rounded-md uppercase tracking-wide">
                     {selectedExam.month}
                   </span>
-                  {isExamOver && (
-                    <span className="bg-gray-100 text-gray-600 text-xs font-black px-3 py-1 rounded-md uppercase tracking-wide">
-                      Exam Concluded
-                    </span>
-                  )}
+                  <span className={`text-xs font-black px-3 py-1 rounded-md uppercase tracking-wide ${
+                    examStatusText === 'Result Declared' ? 'bg-green-100 text-green-700' :
+                    examStatusText === 'Commenced' ? 'bg-blue-100 text-blue-700' :
+                    examStatusText === 'Ongoing' ? 'bg-purple-100 text-purple-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {examStatusText}
+                  </span>
                 </div>
               </div>
               <div className="text-right">
@@ -491,7 +497,7 @@ export function TeacherExam() {
               >
                 Datesheet
               </button>
-              {currentUser?.role === 'Teacher' && (classTeacherClassIds.includes(selectedClassId) || classTeacherClassIds.includes(selectedClassId.replace('Class ', ''))) && (
+              {currentUser?.role === 'Teacher' && isEntryOpen && (classTeacherClassIds.includes(selectedClassId) || classTeacherClassIds.includes(selectedClassId.replace('Class ', ''))) && (
                 <button
                   onClick={() => setActiveTab('result_draft')}
                   className={`py-3 px-6 text-sm font-bold border-b-2 transition-colors ${activeTab === 'result_draft' ? 'border-[#A05C2B] text-[#A05C2B]' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
@@ -549,27 +555,20 @@ export function TeacherExam() {
                                 <p className="text-sm text-gray-500 font-medium">Press Enter to move to next student.</p>
                               </div>
                               <div className="flex flex-wrap items-center gap-3">
-                                <div className="bg-white p-1 rounded-xl border border-gray-200 shadow-sm flex flex-wrap">
-                                   <button 
-                                     onClick={() => setSectionFilter('all')}
-                                     className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${sectionFilter === 'all' ? 'bg-[#1F2937] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                                   >
-                                     Whole Class
-                                   </button>
-                                   {activeClass?.sections?.map((sec: any) => {
-                                     const secId = typeof sec === 'string' ? sec : sec.id;
-                                     const secName = typeof sec === 'string' ? sec : sec.name || secId;
-                                     return (
-                                       <button 
-                                         key={secId}
-                                         onClick={() => setSectionFilter(secId)}
-                                         className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${sectionFilter === secId ? 'bg-[#1F2937] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                                       >
-                                         Section {secName}
-                                       </button>
-                                     );
-                                   })}
-                                </div>
+                                <select 
+                                  value={sectionFilter} 
+                                  onChange={e => setSectionFilter(e.target.value)}
+                                  className="w-full sm:w-auto bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-[#A05C2B]/30 shadow-sm"
+                                >
+                                  <option value="all">Whole Class</option>
+                                  {activeClass?.sections?.map((sec: any) => {
+                                    const secId = typeof sec === 'string' ? sec : sec.id;
+                                    const secName = typeof sec === 'string' ? sec : sec.name || secId;
+                                    return (
+                                      <option key={secId} value={secId}>Section {secName}</option>
+                                    );
+                                  })}
+                                </select>
                               </div>
                           </div>
                           
@@ -596,17 +595,27 @@ export function TeacherExam() {
                 ) : activeTab === 'result_draft' ? (
                   <div className="animate-in fade-in slide-in-from-bottom-4">
                     {/* ── CLASS TEACHER RESULT DRAFT PANEL ───────────────────────────────────── */}
-                    {currentUser?.role === 'Teacher' && (classTeacherClassIds.includes(selectedClassId) || classTeacherClassIds.includes(selectedClassId.replace('Class ', ''))) && (
+                    {currentUser?.role === 'Teacher' && isEntryOpen && (classTeacherClassIds.includes(selectedClassId) || classTeacherClassIds.includes(selectedClassId.replace('Class ', ''))) && (
                       <div className="space-y-4">
-                        <GlassCard className="p-4 md:p-6 bg-white border border-gray-200 shadow-md">
-                          <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
-                            <Layers className="w-5 h-5 text-[#A05C2B]" /> Result Draft — {selectedClassId}
-                          </h3>
-                          <p className="text-sm text-gray-500 font-medium mb-4">View compiled marks for your class. Only Admin can publish results.</p>
+                        <GlassCard className={`bg-white border border-gray-200 shadow-md ${isDraftTableFullscreen ? 'fixed inset-4 z-50 overflow-y-auto p-6' : 'p-1 md:p-6'}`}>
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+                                <Layers className="w-5 h-5 text-[#A05C2B]" /> Result Draft — {selectedClassId}
+                              </h3>
+                              <p className="text-sm text-gray-500 font-medium">View compiled marks for your class. Only Admin can publish results.</p>
+                            </div>
+                            <button 
+                              onClick={() => setIsDraftTableFullscreen(!isDraftTableFullscreen)}
+                              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                            </button>
+                          </div>
                           
                           <div className="flex flex-wrap gap-4 items-end">
                             {!isCombinedView && (
-                              <div className="flex-1 min-w-[180px]">
+                              <div className="flex-1 min-w-full">
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Select Section</label>
                                 <select 
                                   value={draftSectionFilter} 
@@ -643,13 +652,13 @@ export function TeacherExam() {
                                 <thead className="bg-[#1F2937] text-white sticky top-0 z-10">
                                   <tr>
                                     <th className="p-3 md:p-4 font-bold text-xs uppercase tracking-wider w-20 text-center border-r border-gray-600">Roll No.</th>
-                                    <th className="p-3 md:p-4 font-bold text-xs uppercase tracking-wider min-w-[180px] border-r border-gray-600">
+                                    <th className="p-3 md:p-4 font-bold text-xs uppercase tracking-wider min-w-full border-r border-gray-600">
                                       Student Name {isCombinedView && <span className="text-amber-300 ml-1">(Section)</span>}
                                     </th>
                                     {draftBroadsheetData.subjects.map(sub => (
-                                      <th key={sub} className="p-3 md:p-4 font-bold text-xs uppercase tracking-wider text-center min-w-[90px] border-r border-gray-600">{sub}</th>
+                                      <th key={sub} className="p-3 md:p-4 font-bold text-xs uppercase tracking-wider text-center min-w-full border-r border-gray-600">{sub}</th>
                                     ))}
-                                    <th className="p-3 md:p-4 font-bold text-xs uppercase tracking-wider text-center min-w-[80px] bg-[#374151]">Total</th>
+                                    <th className="p-3 md:p-4 font-bold text-xs uppercase tracking-wider text-center min-w-full bg-[#374151]">Total</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -662,7 +671,7 @@ export function TeacherExam() {
                                         <td className="p-3 md:p-4 border-r border-gray-100">
                                           <span className="font-semibold text-gray-800">{student.name}</span>
                                           {isCombinedView && (
-                                            <span className="ml-2 bg-blue-100 text-blue-700 text-[10px] font-black px-1.5 py-0.5 rounded uppercase">{student.sectionLabel}</span>
+                                            <span className=" bg-blue-100 text-blue-700 text-[10px] font-black px-1.5 py-0.5 rounded uppercase">{student.sectionLabel}</span>
                                           )}
                                         </td>
                                         {draftBroadsheetData.subjects.map(sub => (
@@ -712,32 +721,25 @@ export function TeacherExam() {
                       </div>
                     )}
 
-                    <div className="mb-6 flex justify-between items-end">
+                    <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                       <div>
                         <h3 className="text-xl font-bold text-gray-900 mb-1">Define Syllabus</h3>
                         <p className="text-sm text-gray-500 font-medium">Build syllabus tags for Class {selectedClassId}.</p>
                       </div>
-                      <div className="bg-white p-1 rounded-xl border border-gray-200 shadow-sm flex">
-                         <button 
-                           onClick={() => setSectionFilter('all')}
-                           className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${sectionFilter === 'all' ? 'bg-[#1F2937] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                         >
-                           Whole Class
-                         </button>
-                         {activeClass?.sections?.map((sec: any) => {
-                           const secId = typeof sec === 'string' ? sec : sec.id;
-                           const secName = typeof sec === 'string' ? sec : sec.name || secId;
-                           return (
-                             <button 
-                               key={secId}
-                               onClick={() => setSectionFilter(secId)}
-                               className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${sectionFilter === secId ? 'bg-[#1F2937] text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                             >
-                               Section {secName}
-                             </button>
-                           );
-                         })}
-                      </div>
+                      <select 
+                        value={sectionFilter} 
+                        onChange={e => setSectionFilter(e.target.value)}
+                        className="w-full sm:w-auto bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-[#A05C2B]/30 shadow-sm"
+                      >
+                        <option value="all">Whole Class</option>
+                        {activeClass?.sections?.map((sec: any) => {
+                          const secId = typeof sec === 'string' ? sec : sec.id;
+                          const secName = typeof sec === 'string' ? sec : sec.name || secId;
+                          return (
+                            <option key={secId} value={secId}>Section {secName}</option>
+                          );
+                        })}
+                      </select>
                     </div>
                     
                     <div className={`bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-8 ${isSyllabusLocked ? 'opacity-60 pointer-events-none' : ''}`}>
@@ -875,7 +877,7 @@ export function TeacherExam() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 min-h-[calc(100vh-4rem)] pb-24 md:pb-8 animate-in fade-in zoom-in-95 duration-300">
+    <div className="px-1 py-4 md:p-8 max-w-full mx-auto space-y-8 min-h-[calc(100vh-4rem)] pb-24 md:pb-8 animate-in fade-in zoom-in-95 duration-300">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-200 pb-6">
         <div>
           <h1 className="text-2xl font-black text-[#1F2937] tracking-tight">Teacher Exam Dashboard</h1>

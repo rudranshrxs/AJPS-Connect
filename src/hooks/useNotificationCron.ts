@@ -60,13 +60,45 @@ export function useNotificationCron() {
                       title: 'STRICT ACTION REQUIRED',
                       message: `Exam ${exam.name} starts in ${diffDays} days but is missing datesheet or criteria!`,
                       type: 'warning',
-                      actionPath: '/admin/exams',
+                      actionPath: '/exams',
                       actionLabel: 'Resolve Now'
                     });
                     markRun(key);
                  }
              }
          }
+      });
+
+      // Exam Marks Auto-Unlock (Day after first datesheet date -> Admin & Teachers)
+      exams.forEach((exam: any) => {
+        const datesheets = JSON.parse(localStorage.getItem('ajps_datesheets') || '[]');
+        const examDs = datesheets.filter((d: any) => d.examId === exam.id);
+        const allDatesStr = examDs.flatMap((d: any) => (d.rows || d.schedule || []).map((r: any) => r.date)).filter(Boolean).sort();
+        const firstDateStr = allDatesStr.length > 0 ? allDatesStr[0] : null;
+        
+        // If today is strictly greater than the first date, it's auto-unlocked
+        if (firstDateStr && todayStr > firstDateStr) {
+          const key = `exam_unlocked_notif_${exam.id}`;
+          if (!hasRun(key)) {
+            // Admin Notification
+            NotificationService.sendNotification({
+              role: 'Admin',
+              title: 'Marks Entry Unlocked',
+              message: `Marks entry for ${exam.name} is now open for teachers.`,
+              type: 'info',
+              actionPath: '/exams'
+            });
+            // Teacher Notification
+            NotificationService.sendNotification({
+              role: 'Teacher',
+              title: 'Marks Entry Unlocked',
+              message: `You can now draft results for ${exam.name}.`,
+              type: 'info',
+              actionPath: '/exams'
+            });
+            markRun(key);
+          }
+        }
       });
 
       // B.19 Low Attendance (< 75% -> Specific Student & Class Teacher)

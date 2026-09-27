@@ -10,6 +10,7 @@ export function StudentTimetable() {
   const [timetable, setTimetable] = useState<Timetable | null>(null);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [globalTimetable, setGlobalTimetable] = useState<any[]>([]);
+  const [totalPeriods, setTotalPeriods] = useState(6);
 
   useEffect(() => {
     const storedTimetables = JSON.parse(localStorage.getItem('ajps_timetables') || '[]');
@@ -21,7 +22,12 @@ export function StudentTimetable() {
     
     const storedGlobalTimetable = JSON.parse(localStorage.getItem('ajps_global_timetable') || '[]');
     setGlobalTimetable(storedGlobalTimetable);
+    
+    const settings = JSON.parse(localStorage.getItem('ajps_global_settings') || '{}');
+    if (settings.totalPeriods) setTotalPeriods(settings.totalPeriods);
   }, [currentUser]);
+
+  const PERIODS = Array.from({ length: totalPeriods }, (_, i) => `p${i + 1}`);
 
   const days: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const todayStr = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][getSystemDate().getDay()];
@@ -84,7 +90,7 @@ export function StudentTimetable() {
             </div>
             
             <div className="p-4 bg-white/40 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
-              {['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'].map((period, idx) => {
+              {PERIODS.map((period, idx) => {
                 const teacherId = timetable.schedule[day]?.[period as any];
                 const teacher = allUsers.find(u => u.id === teacherId);
                 

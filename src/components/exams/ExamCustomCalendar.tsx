@@ -44,7 +44,7 @@ export function ExamCustomCalendar({ monthString, onSelect, holidayDates = [] }:
     <div className="flex-1 min-w-[260px]">
       <h4 className="text-sm font-bold text-gray-800 text-center mb-4">{name}</h4>
       <div className="grid grid-cols-7 gap-2">
-        {['S','M','T','W','T','F','S'].map((d, i) => <div key={`${d}-${i}`} className="text-center text-xs font-black text-gray-400">{d}</div>)}
+        {['S','M','T','W','T','F','S'].map((d, i) => <div key={`${d}-${i}`} className="text-center text-[10px] md:text-xs font-black text-gray-400">{d}</div>)}
         {Array.from({ length: new Date(days[0].dateStr).getDay() }).map((_, i) => <div key={`pad-${i}`} />)}
         {days.map(d => (
           <button
@@ -52,7 +52,7 @@ export function ExamCustomCalendar({ monthString, onSelect, holidayDates = [] }:
             disabled={!d.isSelectable}
             onClick={() => onSelect(d.dateStr)}
             title={d.isHoliday ? 'Holiday Declared' : ''}
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all mx-auto relative
+            className={`w-8 h-8 md:w-10 md:h-10 mx-auto rounded-full flex items-center justify-center text-xs font-bold transition-all relative
               ${d.isHoliday ? 'bg-red-50 text-red-600 border border-red-200 cursor-not-allowed' :
                 d.isSunday ? 'text-red-300 bg-red-50/50 cursor-not-allowed' : 
                 d.isPast ? 'text-gray-300 cursor-not-allowed opacity-50' : 

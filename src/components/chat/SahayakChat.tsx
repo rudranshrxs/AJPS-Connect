@@ -1086,7 +1086,7 @@ export function SahayakFAB({ onClick, isOpen, botName }: SahayakFABProps) {
       onClick={onClick}
       whileHover={{ scale: 1.08 }}
       whileTap={{ scale: 0.92 }}
-      className="fixed bottom-[88px] right-4 z-[9998] w-14 h-14 rounded-full bg-gradient-to-br from-[#8B5E2E] to-[#C5873A] shadow-lg flex items-center justify-center text-white"
+      className="fixed bottom-[88px] right-4 z-[9998] w-14 h-14 rounded-full bg-gradient-to-br from-[#8B5E2E] to-[#C5873A] shadow-lg hidden md:flex items-center justify-center text-white"
       style={{ boxShadow: '0 8px 30px rgba(139, 94, 46, 0.42)' }}
       aria-label={`Toggle ${botName} Chat`}
     >

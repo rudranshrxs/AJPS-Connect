@@ -22,6 +22,7 @@ export interface Exam {
     passingMarks: number;
     totalMarks: number;
     includeCoScholastic?: boolean;
+    weightage?: number;
   };
 }
 

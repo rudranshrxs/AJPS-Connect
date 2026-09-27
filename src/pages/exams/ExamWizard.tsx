@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, X, Plus, Trash2 } from 'lucide-react';
-import { useExams, Exam, DatesheetRow } from '../../hooks/useExams';
+import { useExams, Exam, DatesheetRow, Datesheet } from '../../hooks/useExams';
 import { NotificationService } from '../../services/NotificationService';
 import { useSuccess } from '../../context/SuccessContext';
 import { useLoader } from '../../context/LoaderContext';
@@ -59,7 +59,7 @@ interface DatesheetDraft {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export function ExamWizard({ onComplete, onCancel }: { onComplete: () => void, onCancel: () => void }) {
-  const { addExam, addDatesheet } = useExams();
+  const { addExam, addDatesheet, addDatesheets } = useExams();
   const { triggerSuccess, triggerVictory } = useSuccess();
   const { runWithLoader } = useLoader();
 
@@ -233,16 +233,20 @@ export function ExamWizard({ onComplete, onCancel }: { onComplete: () => void, o
 
       // Save datesheets
       if (datesheetDecision === 'now') {
+        const sheetsToAdd: Omit<Datesheet, 'id'>[] = [];
         if (datesheetType === 'same') {
           selectedClasses.forEach(c => {
-            addDatesheet(examId, [c], sameDatesheetRows);
+            sheetsToAdd.push({ examId, classes: [c], rows: sameDatesheetRows });
           });
         } else {
           datesheetDrafts.forEach(ds => {
             ds.classes.forEach(c => {
-              addDatesheet(examId, [c], ds.schedule);
+              sheetsToAdd.push({ examId, classes: [c], rows: ds.schedule });
             });
           });
+        }
+        if (sheetsToAdd.length > 0) {
+          addDatesheets(sheetsToAdd);
         }
       }
 
@@ -483,13 +487,13 @@ export function ExamWizard({ onComplete, onCancel }: { onComplete: () => void, o
                           pool={pool}
                         />
 
-                        <div className="flex flex-col sm:flex-row gap-6 mt-5">
-                          <div className="flex-1">
+                        <div className="grid grid-cols-2 gap-3 mt-5">
+                          <div>
                             <label className="block text-sm font-bold text-gray-400 mb-1">Max Marks</label>
                             <input type="number" value={draft.maxMarks} onChange={e => updateEvalDraft(draft.id, { maxMarks: +e.target.value })}
                               className="w-full text-3xl text-center bg-transparent border-b-2 border-gray-200 focus:border-[#A05C2B] outline-none py-1 font-black text-gray-800" />
                           </div>
-                          <div className="flex-1">
+                          <div>
                             <label className="block text-sm font-bold text-gray-400 mb-1">Pass %</label>
                             <input type="number" value={draft.passPercent} onChange={e => updateEvalDraft(draft.id, { passPercent: +e.target.value })}
                               className="w-full text-3xl text-center bg-transparent border-b-2 border-gray-200 focus:border-[#A05C2B] outline-none py-1 font-black text-gray-800" />

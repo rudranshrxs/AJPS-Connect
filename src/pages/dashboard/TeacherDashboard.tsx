@@ -73,21 +73,31 @@ export function TeacherDashboard() {
             const allRecords = JSON.parse(
               localStorage.getItem("ajps_attendance") || "{}",
             );
-            const todayRecord = allRecords[foundClassId]?.[todayDateStr];
+            const currentMonthPrefix = todayDateStr.substring(0, 7); // "YYYY-MM"
+            let monthTotal = 0;
+            let monthPresent = 0;
+            
+            if (allRecords[foundClassId]) {
+              Object.keys(allRecords[foundClassId]).forEach((dateStr) => {
+                if (dateStr.startsWith(currentMonthPrefix)) {
+                  const dateRecord = allRecords[foundClassId][dateStr];
+                  if (dateRecord.records) {
+                    const total = Object.keys(dateRecord.records).length;
+                    const present = Object.values(dateRecord.records).filter((st: any) => st === "Present" || st === "Late").length;
+                    monthTotal += total;
+                    monthPresent += present;
+                  }
+                }
+              });
+            }
+            
+            if (monthTotal > 0) {
+              setClassAttendancePercent(Math.round((monthPresent / monthTotal) * 100).toString());
+            }
 
+            const todayRecord = allRecords[foundClassId]?.[todayDateStr];
             if (todayRecord) {
               isTodayAttendanceLocked = todayRecord.isLocked || false;
-              if (todayRecord.records) {
-                const total = Object.keys(todayRecord.records).length;
-                const present = Object.values(todayRecord.records).filter(
-                  (st: any) => st === "Present" || st === "Late",
-                ).length;
-                if (total > 0) {
-                  setClassAttendancePercent(
-                    Math.round((present / total) * 100).toString(),
-                  );
-                }
-              }
             }
 
             // Total Students
@@ -208,7 +218,7 @@ export function TeacherDashboard() {
               title: "Attendance Not Submitted",
               message: `${currentUser.name} has not submitted attendance for ${classDetails}.`,
               type: "warning",
-              actionPath: "/admin/attendance",
+              actionPath: "/attendance",
               actionLabel: "View",
             });
             localStorage.setItem(
@@ -354,11 +364,11 @@ export function TeacherDashboard() {
       <div className="stats-grid-responsive z-20 grid grid-cols-2 md:grid-cols-4 w-full gap-4">
         {/* Card 1: Class Assigned & Total Students */}
         <div className="stat-card stat-card-glass flex flex-col justify-center gap-2 min-w-0 overflow-hidden relative break-words">
-          <p className="text-sm md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">
+          <p className="text-[10px] sm:text-xs md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">
             {isClassTeacher ? classDetails : "Class Assigned"}
           </p>
           <div className="flex items-center justify-between gap-2 w-full relative z-10 opacity-100 min-w-0">
-            <h4 className="stat-number font-[700] text-gray-900 break-words min-w-0 opacity-100">
+            <h4 className="stat-number text-xs sm:text-sm md:text-xl font-[700] text-gray-900 break-words min-w-0 opacity-100">
               {totalStudentsInClass}
             </h4>
             <div className="stat-icon-circle rounded-[10px] bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
@@ -370,11 +380,11 @@ export function TeacherDashboard() {
 
         {/* Card 2: Current Period */}
         <div className="stat-card stat-card-glass flex flex-col justify-center gap-2 min-w-0 overflow-hidden relative break-words">
-          <p className="text-sm md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">
+          <p className="text-[10px] sm:text-xs md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">
             Current Period
           </p>
           <div className="flex items-center justify-between gap-2 w-full relative z-10 opacity-100 min-w-0">
-            <h4 className="stat-number font-[700] text-gray-900 break-words min-w-0 opacity-100">
+            <h4 className="stat-number text-xs sm:text-sm md:text-xl font-[700] text-gray-900 break-words min-w-0 opacity-100">
               {currentPeriodInfo.period}
             </h4>
             <div className="stat-icon-circle rounded-[10px] bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
@@ -388,11 +398,11 @@ export function TeacherDashboard() {
 
         {/* Card 3: Class Avg Attendance */}
         <div className="stat-card stat-card-glass flex flex-col justify-center gap-2 min-w-0 overflow-hidden relative break-words">
-          <p className="text-sm md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">
+          <p className="text-[10px] sm:text-xs md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">
             Class Avg Attendance
           </p>
           <div className="flex items-center justify-between gap-2 w-full relative z-10 opacity-100 min-w-0">
-            <h4 className="stat-number font-[700] text-gray-900 break-words min-w-0 opacity-100">
+            <h4 className="stat-number text-xs sm:text-sm md:text-xl font-[700] text-gray-900 break-words min-w-0 opacity-100">
               {classAttendancePercent}
               {classAttendancePercent !== "N/A" && "%"}
             </h4>
@@ -400,16 +410,16 @@ export function TeacherDashboard() {
               <Calendar className="w-5 h-5" />
             </div>
           </div>
-          <p className="stat-title text-[#22C55E] break-words min-w-0">Today</p>
+          <p className="stat-title text-[9px] md:text-xs text-[#22C55E] break-words min-w-0">This Month</p>
         </div>
 
         {/* Card 4: Avg Performance */}
         <div className="stat-card stat-card-glass flex flex-col justify-center gap-2 min-w-0 overflow-hidden relative break-words">
-          <p className="text-sm md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">
+          <p className="text-[10px] sm:text-xs md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">
             Avg Performance
           </p>
           <div className="flex items-center justify-between gap-2 w-full relative z-10 opacity-100 min-w-0">
-            <h4 className="stat-number font-[700] text-gray-900 break-words min-w-0 opacity-100">
+            <h4 className="stat-number text-xs sm:text-sm md:text-xl font-[700] text-gray-900 break-words min-w-0 opacity-100">
               {avgPerformance}
               {avgPerformance !== "N/A" && "%"}
             </h4>

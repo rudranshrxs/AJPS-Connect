@@ -29,12 +29,12 @@ export function MainLayout() {
         <Sidebar isMobileOpen={isMobileSidebarOpen} onClose={() => setIsMobileSidebarOpen(false)} onOpenSahayak={() => setIsSahayakOpen(true)} />
         {isMobileSidebarOpen && (
           <div 
-            className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[90]" 
+            className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] print:hidden" 
             onClick={() => setIsMobileSidebarOpen(false)}
           />
         )}
         <div className="flex-1 flex flex-col relative z-10 main-content-responsive">
-          <header className="lg:hidden sticky top-0 z-50 mobile-header p-3 bg-[#FAF7F2] w-full border-b border-[#EDE8DF] shrink-0 flex items-center justify-between">
+          <header className="lg:hidden sticky top-0 z-50 mobile-header p-3 bg-[#FAF7F2] w-full border-b border-[#EDE8DF] shrink-0 flex items-center justify-between print:hidden">
             <div className="flex items-center gap-2">
               <img src="/Logo.png" alt="Logo" className="mobile-header-logo object-contain shrink-0" />
               <div className="flex flex-col">
@@ -63,13 +63,13 @@ export function MainLayout() {
             <div className="flex-1">
               <Outlet />
             </div>
-            <footer className="text-xs text-gray-400 py-4 text-center mt-auto shrink-0 border-t border-gray-100">
-              © Rudransh Developers | App related Query - +91 81789 20808
+            <footer className="text-xs text-gray-400 py-4 text-center mt-auto shrink-0 border-t border-gray-100 print:hidden">
+              © Rudransh Codes | App related Query - rudranshcodes@gmail.com
             </footer>
           </main>
         </div>
 
-      <div className="lg:hidden fixed bottom-4 left-4 right-4 z-50 flex justify-center pointer-events-none">
+      <div className="lg:hidden fixed bottom-4 left-4 right-4 z-50 flex justify-center pointer-events-none print:hidden">
         <div className="bg-white/90 backdrop-blur-lg border border-white/40 shadow-lg flex flex-nowrap justify-around items-center p-2 w-full max-w-md rounded-2xl pointer-events-auto">
           {filteredNav.slice(0, 4).map((item) => {
             const Icon = item.icon;

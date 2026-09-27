@@ -200,8 +200,8 @@ export function useExams() {
   const saveMarks = (examId: string, classId: string, marks: MarksRecord) => {
     const storedClasses = localStorage.getItem('ajps_classes');
     const ajps_classes = storedClasses ? JSON.parse(storedClasses) : [];
-    const cls = ajps_classes.find((c: any) => c.id === classId);
-    const className = cls ? cls.name : classId;
+    const cls = ajps_classes.find((c: any) => c.id === classId || c.className === classId);
+    const className = cls ? (cls.className || cls.name) : classId;
 
     let newResults = [...results];
     const classKey = `${examId}_${className}`;
@@ -247,8 +247,8 @@ export function useExams() {
   const publishResult = (examId: string, classId: string, forcePublish: boolean = false) => {
     const storedClasses = localStorage.getItem('ajps_classes');
     const ajps_classes = storedClasses ? JSON.parse(storedClasses) : [];
-    const cls = ajps_classes.find((c: any) => c.id === classId);
-    const className = cls ? cls.name : classId;
+    const cls = ajps_classes.find((c: any) => c.id === classId || c.className === classId);
+    const className = cls ? (cls.className || cls.name) : classId;
     const classKey = `${examId}_${className}`;
     
     const result = results.find(r => r.examId === examId && r.classKey === classKey);
@@ -278,10 +278,11 @@ export function useExams() {
   const examsWithDerivedStatus = exams.map(e => {
       const examDs = datesheets.filter(d => d.examId === e.id);
       const allDates = examDs.flatMap(d => (d.rows || (d as any).schedule || []).map((r: any) => new Date(r.date).getTime())).filter(Boolean);
-      const firstDate = allDates.length > 0 ? Math.min(...allDates) : null;
+      const lastDate = allDates.length > 0 ? Math.max(...allDates) : null;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const autoUnlocked = firstDate ? today.getTime() > firstDate + 24*60*60*1000 : false;
+      // Auto unlock marks entry if today is at least 1 day after the last exam date
+      const autoUnlocked = lastDate ? today.getTime() >= lastDate + 24 * 60 * 60 * 1000 : false;
       return { ...e, isMarksEntryOpen: e.isMarksEntryOpen || autoUnlocked };
     });
   

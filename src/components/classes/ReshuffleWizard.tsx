@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { ArrowLeft, Check, RotateCcw, Users, X } from 'lucide-react';
+import { ArrowLeft, Check, RotateCcw, Users, X, AlertTriangle } from 'lucide-react';
 import { SchoolClass } from './ClassWindow';
 import { User } from '../../types';
 import { useSuccess } from '../../context/SuccessContext';
@@ -77,7 +77,8 @@ export function ReshuffleWizard({ classObj, onClose }: ReshuffleWizardProps) {
   };
 
   const handleSave = () => {
-    if (!window.confirm('Are you sure you want to save these reshuffled sections?')) return;
+    const confirmMessage = '⚠️ STRICT WARNING: Reshuffling students across sections will affect class rosters, attendance records, and exam broadsheets.\n\nAre you absolutely sure you want to save these changes and apply them globally?';
+    if (!window.confirm(confirmMessage)) return;
     const users: User[] = JSON.parse(localStorage.getItem('ajps_users') || '[]');
     const updatedUsers = users.map(u => {
       const match = draft.find(d => d.studentId === u.id);
@@ -225,6 +226,18 @@ export function ReshuffleWizard({ classObj, onClose }: ReshuffleWizardProps) {
       </header>
 
       <div className="p-4 md:p-8 max-w-6xl mx-auto w-full">
+        <div className="bg-red-50 border border-red-200 p-4 mb-6 rounded-xl shadow-sm flex gap-3 items-start animate-in slide-in-from-top duration-300">
+          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-red-800 font-bold text-sm">STRICT WARNING: Proceed with Extreme Caution</h3>
+            <p className="text-red-700 text-xs mt-1 font-medium leading-relaxed">
+              Reshuffling students across sections will permanently alter class rosters. 
+              This action has wide-ranging impacts on attendance records, exam broadsheets, and fee structures. 
+              Please verify all assignments meticulously before confirming.
+            </p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {sections.map(sec => {
             const sectionDrafts = grouped[sec.id] || [];

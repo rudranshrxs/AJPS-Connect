@@ -75,9 +75,9 @@ export function AttendanceCalendar({ attendanceRecords, onDateSelect, selectedDa
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative w-[100vw] -ml-4 sm:w-full sm:ml-0 md:max-w-xl md:mx-auto">
       <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-100 bg-gray-50/50">
-        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <h2 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
           <CalendarIcon className="w-6 h-6 text-indigo-600" />
           {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
         </h2>
@@ -91,18 +91,19 @@ export function AttendanceCalendar({ attendanceRecords, onDateSelect, selectedDa
         </div>
       </div>
 
-      <div className="p-4 md:p-6">
+      <div className="p-1 md:p-6">
         <div className="grid grid-cols-7 gap-2 mb-4">
           {days.map(day => (
-            <div key={day} className="text-center text-xs font-bold text-gray-400 uppercase tracking-wider">
-              {day}
+            <div key={day} className="text-center text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-tighter md:tracking-wider">
+              <span className="hidden md:inline">{day}</span>
+              <span className="md:hidden">{day.charAt(0)}</span>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-y-4 gap-x-2">
+        <div className="grid grid-cols-7 w-full gap-1 md:gap-2">
           {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-            <div key={`empty-${i}`} className="w-10 h-10 mx-auto"></div>
+            <div key={`empty-${i}`} className="w-8 h-8 md:w-10 md:h-10 mx-auto"></div>
           ))}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1;
@@ -125,7 +126,7 @@ export function AttendanceCalendar({ attendanceRecords, onDateSelect, selectedDa
                     }
                   }}
                   disabled={isDisabled}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-200 
+                  className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-[11px] md:text-sm mx-auto transition-all duration-200 
                     ${isFuture ? 'opacity-30 cursor-not-allowed bg-gray-50 text-gray-400' : 
                       selectedDate === record.date ? 'ring-4 ring-[#A05C2B]/50 scale-110 ' + getColorClass(record.status) : 
                       getColorClass(record.status)
@@ -185,7 +186,7 @@ export function AttendanceCalendar({ attendanceRecords, onDateSelect, selectedDa
         )}
       </AnimatePresence>
 
-      <div className="p-4 md:p-6 border-t border-gray-100 bg-gray-50/30">
+      <div className="p-2 md:p-6 border-t border-gray-100 bg-gray-50/30">
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium text-gray-600 mb-4">
           <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-green-500"></span> Present</div>
           <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500"></span> Absent</div>

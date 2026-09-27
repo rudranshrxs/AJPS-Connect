@@ -51,7 +51,7 @@ export function Sidebar({ onOpenSahayak, isMobileOpen, onClose }: { onOpenSahaya
   const filteredNav = NAV_ITEMS.filter(item => item.allowedRoles.includes(currentUser.role));
 
   return (
-    <aside className={`sidebar-responsive h-full overflow-y-auto bg-[#FAF7F2] border-r border-[#EDE8DF] flex flex-col shrink-0 transition-all duration-300 lg:flex ${isMobileOpen ? '!flex fixed inset-y-0 left-0 z-[100] w-[260px] shadow-2xl' : 'hidden'}`}>
+    <aside className={`sidebar-responsive h-full overflow-y-auto bg-[#FAF7F2] border-r border-[#EDE8DF] flex flex-col shrink-0 transition-all duration-300 lg:flex print:hidden ${isMobileOpen ? '!flex fixed inset-y-0 left-0 z-[100] w-[260px] shadow-2xl' : 'hidden'}`}>
       <div className="pb-6 pt-[2px] flex flex-col items-center relative">
         {isMobileOpen && (
           <button onClick={onClose} className="lg:hidden absolute top-4 right-4 text-gray-500 hover:text-gray-900">
@@ -76,6 +76,7 @@ export function Sidebar({ onOpenSahayak, isMobileOpen, onClose }: { onOpenSahaya
             <NavLink
               key={item.name}
               to={item.path}
+              onClick={onClose}
               className={({ isActive }) => 
                 `sidebar-nav-item flex items-center transition-all duration-300 ${
                   isActive 

@@ -21,7 +21,7 @@ export function StudentDirectory() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const selectedStudent = useMemo(() => globalStudents.find(s => s.id === selectedStudentId) || null, [globalStudents, selectedStudentId]);
   const [isClassTeacher, setIsClassTeacher] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(20);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   // New states for import & filtering
   const [showImportModal, setShowImportModal] = useState(false);
@@ -33,20 +33,6 @@ export function StudentDirectory() {
     lowAttendance: false,
     failedLastTest: false
   });
-
-  useEffect(() => {
-    setVisibleCount(20);
-  }, [searchQuery, filters]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 200) {
-        setVisibleCount(prev => prev + 20);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     let onlyStudents = [...globalStudents];
@@ -337,6 +323,17 @@ export function StudentDirectory() {
                 </span>
               </div>
             ))}
+          </div>
+        )}
+
+        {filteredStudents.length > visibleCount && (
+          <div className="p-4 border-t border-gray-100 flex justify-center bg-gray-50/50">
+            <button 
+              onClick={() => setVisibleCount(prev => prev + 50)}
+              className="px-6 py-2 bg-white border border-gray-200 text-[#A05C2B] font-bold rounded-xl shadow-sm hover:bg-[#FDF7EE] hover:border-[#A05C2B]/30 transition-all"
+            >
+              Load More
+            </button>
           </div>
         )}
       </GlassCard>

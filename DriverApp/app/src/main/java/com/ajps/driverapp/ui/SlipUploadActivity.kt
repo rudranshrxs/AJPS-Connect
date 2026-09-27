@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.ajps.driverapp.models.SlipDetails
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 // Gemini AI Imports (Generative AI SDK)
 import com.google.ai.client.generativeai.GenerativeModel
@@ -125,7 +126,7 @@ class SlipUploadActivity : AppCompatActivity() {
         )
 
         db.collection("driver_data").document(driverId)
-            .update("slip_details", slipData)
+            .set(mapOf("slip_details" to slipData), SetOptions.merge())
             .addOnSuccessListener {
                 Toast.makeText(this, "Slip aur details successfully upload ho gaye!", Toast.LENGTH_LONG).show()
             }

@@ -28,7 +28,7 @@ export const formatClassSectionDisplay = (className: string | undefined, section
   } else if (className?.toLowerCase().includes('ukg')) {
     formattedClass = 'UKG';
   } else if (className?.toLowerCase().includes('nursery')) {
-    formattedClass = 'Nursery';
+    formattedClass = 'N';
   }
 
   let formattedSection = section || '';

@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.ajps.driverapp.models.DriverLocation
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -47,29 +48,30 @@ class DriverLocationService : Service() {
         scope.launch {
             while (isTracking) {
                 // In a real app, use FusedLocationProviderClient here.
-                // For now, simulating location fetch logic:
-                val simulatedLat = 28.7041 // Example Delhi Lat
-                val simulatedLng = 77.1025 // Example Delhi Lng
+                // Simulated location fetch logic:
+                val simulatedLat = 26.35 // School route example
+                val simulatedLng = 78.93
 
                 updateLocationInFirebase(driverId, simulatedLat, simulatedLng)
                 
-                // Update every 30 seconds to optimize Firebase writes
-                delay(30000)
+                // Update every 8 seconds (optimized 5-10s live tracking interval)
+                delay(8000)
             }
         }
     }
 
     private fun updateLocationInFirebase(driverId: String, lat: Double, lng: Double) {
-        // BHAI DHYAN DEIN: Yahan hum "driver_data" aur "location" fields use kar rahe hain
-        // jo ki aapke school PWA se directly sync hoga!
-        val locationData = DriverLocation(
-            lat = lat,
-            lng = lng,
-            last_updated = Timestamp.now()
+        val locationData = hashMapOf(
+            "lat" to lat,
+            "latitude" to lat,
+            "lng" to lng,
+            "longitude" to lng,
+            "updatedAt" to Timestamp.now(),
+            "last_updated" to Timestamp.now()
         )
 
-        db.collection("driver_data").document(driverId)
-            .update("location", locationData)
+        db.collection("driver_locations").document(driverId)
+            .set(locationData, SetOptions.merge())
             .addOnSuccessListener {
                 // Location updated successfully
             }

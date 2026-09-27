@@ -92,7 +92,7 @@ export function NoticesUI({ notices, readNotices, canCreate, onCreateClick, onMa
               </button>
               <button 
                 onClick={onCreateClick}
-                className="md:hidden fixed bottom-6 right-6 z-50 bg-[#0B1E40] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-900 transition-colors"
+                className="md:hidden fixed bottom-24 right-4 z-50 bg-[#0B1E40] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-900 transition-colors"
               >
                 <Plus className="w-6 h-6" />
               </button>

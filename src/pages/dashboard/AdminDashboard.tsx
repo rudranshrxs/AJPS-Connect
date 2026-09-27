@@ -232,16 +232,16 @@ export function AdminDashboard() {
           
         {/* Card 1: Today's Attendance */}
         <div className="stat-card stat-card-glass flex flex-col justify-center gap-2 min-w-0 overflow-hidden relative break-words">
-          <p className="text-sm md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">Today's Attendance</p>
-          <div className="flex items-center justify-between gap-2 w-full relative z-10 opacity-100 min-w-0">
-            <h4 className="stat-number font-[700] text-gray-900 break-words min-w-0 opacity-100">
+          <p className="text-[9px] sm:text-[10px] md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-normal md:tracking-[0.04em]">Today's Attendance</p>
+          <div className="flex items-center justify-between gap-1 md:gap-2 w-full relative z-10 opacity-100 min-w-0">
+            <h4 className="stat-number text-xs sm:text-sm md:text-2xl font-[700] text-gray-900 break-words min-w-0 opacity-100">
               {isBeforeP2 ? "Pending..." : `${stats.attendancePercent}%`}
             </h4>
             <div className="stat-icon-circle rounded-[10px] bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
               <Users className="w-5 h-5" />
             </div>
           </div>
-          <p className="stat-title text-[#22C55E] break-words min-w-0">
+          <p className="stat-title text-[9px] md:text-sm text-[#22C55E] break-words min-w-0">
             {isBeforeP2 ? "Waiting for P2..." : `${stats.attendancePresent} / ${stats.attendanceTotal} (Whole School)`}
           </p>
         </div>
@@ -251,40 +251,40 @@ export function AdminDashboard() {
           className="stat-card stat-card-glass flex flex-col justify-center gap-2 min-w-0 overflow-hidden relative cursor-pointer hover:shadow-md transition-shadow break-words"
           onClick={() => setIsStaffModalOpen(true)}
         >
-          <p className="text-sm md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">Staff Present</p>
-          <div className="flex items-center justify-between gap-2 w-full relative z-10 opacity-100 min-w-0">
-            <h4 className="stat-number font-[700] text-gray-900 break-words min-w-0 opacity-100">
+          <p className="text-[9px] sm:text-[10px] md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-normal md:tracking-[0.04em]">Staff Present</p>
+          <div className="flex items-center justify-between gap-1 md:gap-2 w-full relative z-10 opacity-100 min-w-0">
+            <h4 className="stat-number text-xs sm:text-sm md:text-2xl font-[700] text-gray-900 break-words min-w-0 opacity-100">
               {isBeforeP2 ? "Pending..." : `${stats.staffPresent} / ${stats.staffTotal}`}
             </h4>
             <div className="stat-icon-circle rounded-[10px] bg-purple-50 flex items-center justify-center text-purple-600 shrink-0">
               <Briefcase className="w-5 h-5" />
             </div>
           </div>
-          <p className="stat-title text-[#8B5CF6] break-words min-w-0">Click to view absent staff</p>
+          <p className="stat-title text-[9px] md:text-sm text-[#8B5CF6] break-words min-w-0">Click to view absent staff</p>
         </div>
 
         {/* Card 3: Fee Collected */}
         <div className="stat-card stat-card-glass flex flex-col justify-center gap-2 min-w-0 overflow-hidden relative break-words">
-          <p className="text-sm md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">Fee Collected</p>
-          <div className="flex items-center justify-between gap-2 w-full relative z-10 opacity-100 min-w-0">
-            <h4 className="stat-number font-[700] text-gray-900 break-words min-w-0 opacity-100">₹{stats.revenue.toLocaleString('en-IN')}</h4>
+          <p className="text-[9px] sm:text-[10px] md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-normal md:tracking-[0.04em]">Fee Collected</p>
+          <div className="flex items-center justify-between gap-1 md:gap-2 w-full relative z-10 opacity-100 min-w-0">
+            <h4 className="stat-number text-xs sm:text-sm md:text-2xl font-[700] text-gray-900 break-words min-w-0 opacity-100">₹{stats.revenue.toLocaleString('en-IN')}</h4>
             <div className="stat-icon-circle rounded-[10px] bg-orange-50 flex items-center justify-center text-orange-600 shrink-0">
               <IndianRupee className="w-5 h-5" />
             </div>
           </div>
-          <p className="stat-title text-[#F59E0B] break-words min-w-0">Total Received</p>
+          <p className="stat-title text-[9px] md:text-sm text-[#F59E0B] break-words min-w-0">Total Received</p>
         </div>
 
         {/* Card 4: Best Performing Class */}
         <div className="stat-card stat-card-glass flex flex-col justify-center gap-2 min-w-0 overflow-hidden relative break-words">
-          <p className="text-sm md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-[0.04em]">Best Class</p>
-          <div className="flex items-center justify-between gap-2 w-full relative z-10 opacity-100 min-w-0">
-            <h4 className="stat-number font-[700] text-gray-900 break-words min-w-0 opacity-100">{stats.bestClassInfo}</h4>
+          <p className="text-[9px] sm:text-[10px] md:text-lg lg:text-xl font-bold break-words min-w-0 relative z-10 opacity-100 text-[#6B5E4E] uppercase tracking-normal md:tracking-[0.04em]">Best Class</p>
+          <div className="flex items-center justify-between gap-1 md:gap-2 w-full relative z-10 opacity-100 min-w-0">
+            <h4 className="stat-number text-xs sm:text-sm md:text-2xl font-[700] text-gray-900 break-words min-w-0 opacity-100">{stats.bestClassInfo}</h4>
             <div className="stat-icon-circle rounded-[10px] bg-green-50 flex items-center justify-center text-green-600 shrink-0">
               <Activity className="w-5 h-5" />
             </div>
           </div>
-          <p className="stat-title text-[#22C55E] break-words min-w-0">In Last Exam</p>
+          <p className="stat-title text-[9px] md:text-sm text-[#22C55E] break-words min-w-0">In Last Exam</p>
         </div>
 
         </div>

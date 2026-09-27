@@ -65,7 +65,7 @@ export function MarksEntry({
     );
   }
 
-  const handleMarkChange = (studentId: string, value: string) => {
+  const handleMarkChange = (studentId: string, value: string, index: number) => {
     if (!canEdit || isPublished || isSubjectLocked) return;
     
     if (value === '' || value.toUpperCase() === 'N/A') {
@@ -79,6 +79,15 @@ export function MarksEntry({
     if (sanitized !== '' && (isNaN(numVal) || numVal < 0 || numVal > currentMaxMarks)) return;
 
     setDraftMarks(prev => ({ ...prev, [studentId]: numVal }));
+    
+    if (sanitized.length > 0) {
+      if (numVal * 10 > currentMaxMarks) {
+        setTimeout(() => {
+          const next = inputRefs.current[index + 1];
+          if (next) next.focus();
+        }, 10);
+      }
+    }
   };
 
   const handleMarkKeyDown = (e: React.KeyboardEvent, index: number) => {
@@ -174,13 +183,13 @@ export function MarksEntry({
         </div>
       )}
       <div className="w-full overflow-x-auto overflow-y-hidden bg-white rounded-2xl border border-gray-200 shadow-sm mb-6 custom-scrollbar">
-        <table className="w-full text-left text-sm" >
+        <table className="w-full text-left text-sm min-w-[500px]" >
           <thead className="bg-[#FDFBF7] border-b border-gray-200">
             <tr>
-              <th className="p-2 md:p-4 font-bold text-gray-600 text-xs md:text-sm">Roll No.</th>
+              <th className="hidden md:table-cell p-2 md:p-4 font-bold text-gray-600 text-xs md:text-sm">Roll No.</th>
               <th className="p-2 md:p-4 font-bold text-gray-600 text-xs md:text-sm">Student Name</th>
               {sectionFilter === 'all' && (
-                <th className="p-2 md:p-4 font-bold text-gray-600 text-xs md:text-sm">Section</th>
+                <th className="hidden md:table-cell p-2 md:p-4 font-bold text-gray-600 text-xs md:text-sm">Section</th>
               )}
               <th className="p-2 md:p-4 font-bold text-gray-600 text-right text-xs md:text-sm">Marks / {currentMaxMarks}</th>
             </tr>
@@ -191,29 +200,37 @@ export function MarksEntry({
               const displayVal = val !== undefined ? val : '';
               return (
                 <tr key={student.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="p-2 md:p-4 font-bold text-gray-400 text-xs md:text-sm">{student.rollNumber || 'N/A'}</td>
-                  <td className="p-2 md:p-4 font-semibold text-gray-800 text-xs md:text-sm">
-                    <div className="flex items-center gap-2">
-                      {student.name}
+                  <td className="hidden md:table-cell p-2 md:p-4 font-bold text-gray-400 text-xs md:text-sm">{student.rollNumber || 'N/A'}</td>
+                  <td className="p-2 md:p-4 font-semibold text-gray-800 text-xs md:text-sm max-w-[150px] truncate">
+                    <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">{student.name}</span>
+                        {sectionFilter === 'all' && (
+                          <span className="md:hidden bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                            Sec {student.section || student.sectionId}
+                          </span>
+                        )}
+                      </div>
+                      <span className="md:hidden text-gray-500 font-bold text-[10px]">Roll: {student.rollNumber || 'N/A'}</span>
                       {isSubjectLocked && (
-                        <span className="bg-green-100 text-green-700 text-[10px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
+                        <span className="bg-green-100 text-green-700 text-[10px] font-black px-1.5 py-0.5 rounded w-fit uppercase flex items-center gap-1 mt-1 md:mt-0">
                           <CheckCircle className="w-3 h-3" /> Locked
                         </span>
                       )}
                     </div>
                   </td>
                   {sectionFilter === 'all' && (
-                    <td className="p-2 md:p-4 font-bold text-gray-500 text-xs md:text-sm">
+                    <td className="hidden md:table-cell p-2 md:p-4 font-bold text-gray-500 text-xs md:text-sm">
                       <span className="bg-gray-100 px-2 py-1 rounded text-xs">{student.section || student.sectionId}</span>
                     </td>
                   )}
-                  <td className="p-2 md:p-4 text-right flex items-center justify-end gap-1 md:gap-2">
+                  <td className="p-2 md:p-4 text-right flex items-center justify-end">
                     {isFormDisabled ? (
-                      <input 
+                        <input 
                         type="text" 
                         disabled 
                         value={displayVal} 
-                        className="w-20 text-center bg-gray-100 text-gray-500 cursor-not-allowed font-bold border border-gray-200 rounded-lg px-2 py-1.5" 
+                        className="w-16 sm:w-20 text-center bg-gray-100 text-gray-500 cursor-not-allowed font-bold border border-gray-200 rounded-lg px-2 py-1.5 text-xs sm:text-sm" 
                       />
                     ) : (
                       <input 
@@ -226,9 +243,12 @@ export function MarksEntry({
                           (draftMarks[student.id] !== undefined ? draftMarks[student.id] : '')
                         }
                         placeholder="N/A"
-                        onChange={e => handleMarkChange(student.id, e.target.value)} 
+                        onChange={e => handleMarkChange(student.id, e.target.value, i)} 
                         onKeyDown={e => handleMarkKeyDown(e, i)}
-                        className="w-20 text-center bg-white border border-gray-300 rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-[#A05C2B]/30 focus:border-[#A05C2B] font-bold text-gray-800 transition-colors" 
+                        className={`w-16 sm:w-20 text-center font-bold border-2 rounded-lg px-2 py-1.5 text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#A05C2B]/30
+                          ${draftMarks[student.id] !== existingMarks[subjectId]?.[student.id] 
+                            ? 'border-amber-400 bg-amber-50 text-amber-900' 
+                            : 'border-gray-200 bg-white text-gray-900'}`} 
                       />
                     )}
                     <span className="font-bold text-gray-400">/</span>

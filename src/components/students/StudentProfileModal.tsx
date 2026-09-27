@@ -13,6 +13,7 @@ interface StudentProfileModalProps {
 
 export function StudentProfileModal({ isOpen, onClose, student, onStudentUpdate, children }: StudentProfileModalProps) {
   const [stats, setStats] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'results'>('overview');
   
   const [isEditingSection, setIsEditingSection] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState('');
@@ -105,8 +106,25 @@ export function StudentProfileModal({ isOpen, onClose, student, onStudentUpdate,
         </div>
 
         {/* Body */}
+        <div className="flex border-b border-gray-100 bg-white">
+          <button 
+            onClick={() => setActiveTab('overview')} 
+            className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'overview' ? 'border-[#A05C2B] text-[#A05C2B]' : 'border-transparent text-gray-500'}`}
+          >
+            Overview
+          </button>
+          <button 
+            onClick={() => setActiveTab('results')} 
+            className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'results' ? 'border-[#A05C2B] text-[#A05C2B]' : 'border-transparent text-gray-500'}`}
+          >
+            Results
+          </button>
+        </div>
+        
         <div className="p-6 md:p-8 flex-1">
-          {/* Section Edit Mode */}
+          {activeTab === 'overview' ? (
+            <>
+              {/* Section Edit Mode */}
           {isEditingSection && (
             <div className="mb-6 p-4 bg-white border-2 border-blue-100 rounded-2xl shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
               <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -202,6 +220,18 @@ export function StudentProfileModal({ isOpen, onClose, student, onStudentUpdate,
             )}
             {children}
           </div>
+          </>
+          ) : (
+            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Award className="w-5 h-5 text-purple-600" /> Academic Results
+              </h3>
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm text-center">
+                <p className="text-gray-500 font-medium">Historical results and report cards will appear here.</p>
+                {/* Future: Render detailed student results and charts here */}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

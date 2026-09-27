@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Plus, Users, Shuffle, Clock, AlertTriangle, 
   Users2, Banknote, User as UserIcon, Merge, X, Search, LayoutGrid
@@ -8,6 +9,7 @@ import { MergeSectionModal } from './MergeSectionModal';
 import { ReshuffleWizard } from './ReshuffleWizard';
 import { useSuccess } from '../../context/SuccessContext';
 import { User, Timetable, DayOfWeek, PeriodKey } from '../../types';
+import { StudentProfileWindow } from '../directory/StudentProfileWindow';
 
 // Re-export types so AdminClassManager can still import them
 export interface Section {
@@ -26,7 +28,6 @@ export interface SchoolClass {
 type ViewState = 'LIST' | 'CLASS_DETAIL' | 'SECTION_DETAIL';
 
 const DAYS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-const PERIODS: PeriodKey[] = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
 
 interface ClassWindowProps {
   onAddClass: () => void;
@@ -37,6 +38,9 @@ export function ClassWindow({ onAddClass }: ClassWindowProps) {
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [timetables, setTimetables] = useState<Timetable[]>([]);
+  const [totalPeriods, setTotalPeriods] = useState(6);
+  const PERIODS = useMemo(() => Array.from({ length: totalPeriods }, (_, i) => `p${i + 1}` as PeriodKey), [totalPeriods]);
+  const [selectedStudentProfile, setSelectedStudentProfile] = useState<User | null>(null);
 
   const [view, setView] = useState<ViewState>('LIST');
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
@@ -50,6 +54,8 @@ export function ClassWindow({ onAddClass }: ClassWindowProps) {
     setClasses(JSON.parse(localStorage.getItem('ajps_classes') || '[]'));
     setUsers(JSON.parse(localStorage.getItem('ajps_users') || '[]'));
     setTimetables(JSON.parse(localStorage.getItem('ajps_timetables') || '[]'));
+    const settings = JSON.parse(localStorage.getItem('ajps_global_settings') || '{}');
+    if (settings.totalPeriods) setTotalPeriods(settings.totalPeriods);
   };
 
   useEffect(() => {
@@ -143,7 +149,7 @@ export function ClassWindow({ onAddClass }: ClassWindowProps) {
                 >
                   <div className="flex items-center gap-4 mb-4">
                     <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#FDF7EE] to-[#F5E6D0] border border-[#A05C2B]/20 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                      <span className="text-2xl font-black text-[#A05C2B]">{cls.className.replace('Class ', '')}</span>
+                      <span className="text-2xl font-black text-[#A05C2B]">{cls.className.toLowerCase().includes('nursery') ? 'N' : cls.className.replace('Class ', '')}</span>
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 group-hover:text-[#A05C2B] transition-colors">{cls.className}</h3>
@@ -186,13 +192,17 @@ export function ClassWindow({ onAddClass }: ClassWindowProps) {
             </button>
             <div className="w-px h-6 bg-gray-200" />
             <div className="w-10 h-10 rounded-lg bg-[#FDF7EE] border border-[#A05C2B]/20 flex items-center justify-center">
-              <span className="text-lg font-black text-[#A05C2B]">{selectedClass.className.replace('Class ', '')}</span>
+              <span className="text-lg font-black text-[#A05C2B]">{selectedClass.className.toLowerCase().includes('nursery') ? 'N' : selectedClass.className.replace('Class ', '')}</span>
             </div>
             <h1 className="text-xl font-bold text-[#1F2937]">{selectedClass.className}</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
-              onClick={() => setIsReshuffleOpen(true)}
+              onClick={() => {
+                if (window.confirm("STRICT WARNING: Are you sure you want to reshuffle sections? This will redistribute all students and cannot be undone easily. Proceed?")) {
+                  setIsReshuffleOpen(true);
+                }
+              }}
               className="bg-[#C5873A] text-white px-3 sm:px-4 py-2 rounded-xl font-bold text-sm shadow-sm hover:bg-[#A05C2B] transition-colors flex items-center gap-2"
             >
               <Shuffle className="w-4 h-4" /> <span className="hidden sm:inline">Reshuffle Sections</span>
@@ -398,7 +408,7 @@ export function ClassWindow({ onAddClass }: ClassWindowProps) {
                     <tr 
                       key={st.id} 
                       className="hover:bg-[#FDF7EE]/50 transition-colors cursor-pointer"
-                      onClick={() => window.dispatchEvent(new CustomEvent('ajps_open_student_profile', { detail: st }))}
+                      onClick={() => setSelectedStudentProfile(st)}
                     >
                       <td className="p-4 font-bold text-gray-600">{st.rollNumber}</td>
                       <td className="p-4">
@@ -474,6 +484,15 @@ export function ClassWindow({ onAddClass }: ClassWindowProps) {
           />
         )}
 
+        {/* Student Profile Window Overlay */}
+        <AnimatePresence>
+          {selectedStudentProfile && (
+            <StudentProfileWindow
+              student={selectedStudentProfile}
+              onClose={() => setSelectedStudentProfile(null)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     );
   }

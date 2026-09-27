@@ -1,18 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Settings, AlertTriangle, CheckCircle, Save, Edit3, X, Calendar, ArrowLeft, Clock, ChevronDown, ChevronUp, Trash2, Printer, Layers } from 'lucide-react';
 import { GlassCard } from '../../components/ui/GlassCard';
 import { Toast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { useSuccess } from '../../context/SuccessContext';
-import { useExams, Exam } from '../../hooks/useExams';
+import { useExams, Exam, Datesheet } from '../../hooks/useExams';
 import { NotificationService } from '../../services/NotificationService';
 import { ExamWizard } from './ExamWizard';
 import { ExamCustomCalendar } from '../../components/exams/ExamCustomCalendar';
 import { getSystemDate } from '../../utils/dateUtils';
+import { getExamStatusText } from '../../utils/examUtils';
+import { IndividualReportCard, ClassReportCard, ReportStudentData } from '../../components/exams/ReportCardTemplate';
 
 function ClassPillSelector({ selected, onToggle, pool }: { selected: string[], onToggle: (cls: string) => void, pool: string[] }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="w-full max-w-full px-3">
       {pool.length === 0 ? (
         <p className="text-sm text-gray-400 italic font-medium">All classes already assigned to other groups.</p>
       ) : pool.map(cls => (
@@ -55,6 +57,9 @@ export function AdminExam() {
   const [expandedClassDraft, setExpandedClassDraft] = useState<string | null>(null);
 
   const [publishWarningModal, setPublishWarningModal] = useState<{ examId: string, classId: string, missingCount: number } | null>(null);
+  const [publishConfirmModal, setPublishConfirmModal] = useState<{ examId: string, classId: string, className: string } | null>(null);
+  const [publishMultiModal, setPublishMultiModal] = useState<{ examId: string, availableClasses: string[], selectedClasses: string[] } | null>(null);
+  const [isDraftTableFullscreen, setIsDraftTableFullscreen] = useState(false);
   const [unlockConfirmModal, setUnlockConfirmModal] = useState<string | null>(null); // examId
 
   const [adminDraftClass, setAdminDraftClass] = useState<string>('');
@@ -63,9 +68,11 @@ export function AdminExam() {
 
   const [adminReportModal, setAdminReportModal] = useState<{ exam: Exam; classId: string; students: any[]; result: any; subjects: string[]; c: string } | null>(null);
   const [printMode, setPrintMode] = useState<'class' | 'individual' | null>(null);
-  const [selectedPrintStudent, setSelectedPrintStudent] = useState<string | null>(null);
+  const [selectedPrintStudents, setSelectedPrintStudents] = useState<string[]>([]);
+  const reportPrintRef = useRef<HTMLDivElement>(null);
 
   const [toastMsg, setToastMsg] = useState('');
+
 
   const [isPostponeModalOpen, setIsPostponeModalOpen] = useState(false);
 
@@ -179,7 +186,7 @@ export function AdminExam() {
       title: `Exam Postponed`,
       message: `Alert: The datesheet for ${selectedExam.name} has been cancelled and will be rescheduled.`,
       type: 'warning',
-      actionPath: '/student/exams',
+      actionPath: '/exams',
       actionLabel: 'View Updates'
     });
     setIsPostponeModalOpen(false);
@@ -264,9 +271,13 @@ export function AdminExam() {
         return;
       }
 
+      const sheetsToAdd: Omit<Datesheet, 'id'>[] = [];
       datesheetDrafts.forEach(draft => {
-        addDatesheet(selectedExam.id, draft.classes, draft.rows.map(r => ({ ...r, time: '09:00 AM' })));
+        sheetsToAdd.push({ examId: selectedExam.id, classes: draft.classes, rows: draft.rows.map(r => ({ ...r, time: '09:00 AM' })) });
       });
+      if (sheetsToAdd.length > 0) {
+        addDatesheets(sheetsToAdd);
+      }
     }
 
     setIsDatesheetLocked(true);
@@ -280,7 +291,7 @@ export function AdminExam() {
       title: 'Datesheet Published',
       message: `The datesheet for ${selectedExam.name} is now available.`,
       type: 'info',
-      actionPath: '/student/exams',
+      actionPath: '/exams',
       actionLabel: 'View Datesheet'
     });
   };
@@ -342,7 +353,7 @@ export function AdminExam() {
       title: 'Evaluation Criteria Updated',
       message: `The evaluation metrics for ${selectedExam.name} have been updated.`,
       type: 'info',
-      actionPath: '/student/exams',
+      actionPath: '/exams',
       actionLabel: 'View Criteria'
     });
   };
@@ -367,7 +378,7 @@ export function AdminExam() {
       title: 'Syllabus Updated',
       message: `The syllabus for your class has been updated.`,
       type: 'info',
-      actionPath: '/student/exams',
+      actionPath: '/exams',
       actionLabel: 'View Syllabus'
     });
   };
@@ -400,7 +411,8 @@ export function AdminExam() {
     if (missingCount > 0) {
       setPublishWarningModal({ examId, classId, missingCount });
     } else {
-      executePublish(examId, classId);
+      // Show confirmation modal
+      setPublishConfirmModal({ examId, classId, className: c });
     }
   };
 
@@ -416,10 +428,27 @@ export function AdminExam() {
         title: 'Result Declared!',
         message: `Your result for ${selectedExam?.name} is now available to view.`,
         type: 'info',
-        actionPath: '/student/exams',
+        actionPath: '/exams',
         actionLabel: 'View Result'
       });
       setPublishWarningModal(null);
+    } catch (err: any) {
+      triggerError(err.message || 'Error publishing results');
+    }
+  };
+
+  const executeMultiPublish = (examId: string, classNames: string[]) => {
+    try {
+      const classesData = JSON.parse(localStorage.getItem('ajps_classes') || '[]');
+      let count = 0;
+      for (const className of classNames) {
+        const clsObj = classesData.find((cl: any) => cl.className === className || cl.name === className);
+        if (clsObj) {
+          publishResult(examId, clsObj.id, true);
+          count++;
+        }
+      }
+      triggerSuccess(`Results published for ${count} classes successfully`);
     } catch (err: any) {
       triggerError(err.message || 'Error publishing results');
     }
@@ -430,19 +459,18 @@ export function AdminExam() {
 
     // Overview variables
     const examDatesheets = datesheets.filter(d => d.examId === selectedExam.id);
-    const allDates = examDatesheets.flatMap(d => (d.rows || (d as any).schedule || []).map((r: any) => new Date(r.date).getTime())).filter(Boolean);
-    const firstDate = allDates.length > 0 ? Math.min(...allDates) : null;
-    const today = getSystemDate();
-    today.setHours(0, 0, 0, 0);
-    const todayTime = today.getTime();
+    const allDatesStr = examDatesheets.flatMap(d => (d.rows || (d as any).schedule || []).map((r: any) => r.date)).filter(Boolean).sort();
+    const firstDateStr = allDatesStr.length > 0 ? allDatesStr[0] : null;
+    const todayStr = getSystemDate().toISOString().split('T')[0];
+    const examStatusText = getExamStatusText(selectedExam, allDatesStr);
 
-    // Marks can only be unlocked strictly after the first exam date
-    const canUnlockMarks = firstDate ? todayTime >= firstDate : false;
-    const isMarksEntryOpenDerived = firstDate ? todayTime > firstDate + 24*60*60*1000 : false;
+    // Marks can only be unlocked strictly on or after the first exam date
+    const canUnlockMarks = firstDateStr ? todayStr >= firstDateStr : false;
+    const isMarksEntryOpenDerived = firstDateStr ? todayStr > firstDateStr : false;
     const isMarksEntryOpen = selectedExam.isMarksEntryOpen || isMarksEntryOpenDerived;
 
     return (
-      <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 min-h-[calc(100vh-4rem)] pb-24 md:pb-8 animate-in fade-in zoom-in-95 duration-300">
+      <div className="px-1 py-4 md:p-8 max-w-4xl mx-auto space-y-6 min-h-[calc(100vh-4rem)] pb-24 md:pb-8 animate-in fade-in zoom-in-95 duration-300">
         <button
           onClick={() => setSelectedExam(null)}
           className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-[#A05C2B] transition-colors"
@@ -459,8 +487,8 @@ export function AdminExam() {
                   <Calendar className="w-4 h-4 text-[#A05C2B]" /> {selectedExam.month} Term
                 </p>
               </div>
-              <span className={`px-3 py-1 text-xs font-black uppercase tracking-wider rounded-lg ${selectedExam.isMarksEntryOpen ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
-                {selectedExam.isMarksEntryOpen ? 'Marks Unlocked' : 'Marks Locked'}
+              <span className={`px-3 py-1 text-xs font-black uppercase tracking-wider rounded-lg ${isMarksEntryOpen ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'}`}>
+                {isMarksEntryOpen ? 'Marks Unlocked' : 'Marks Locked'}
               </span>
             </div>
           </div>
@@ -491,8 +519,23 @@ export function AdminExam() {
         <div className="p-6 md:p-8 bg-gray-50/50 min-h-[400px] border border-gray-200 rounded-xl shadow-md">
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
-              <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-center text-center">
-                <h3 className="text-xl font-black text-gray-800 mb-6">Applicable Classes</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-center text-center">
+                  <h3 className="text-xl font-black text-gray-800 mb-6">Exam Status</h3>
+                  <div className="flex justify-center">
+                    <span className={`px-4 py-2 rounded-full text-base font-bold shadow-sm ${
+                      examStatusText === 'Result Declared' ? 'bg-green-100 text-green-700 border-2 border-green-200' :
+                      examStatusText === 'Commenced' ? 'bg-blue-100 text-blue-700 border-2 border-blue-200' :
+                      examStatusText === 'Ongoing' ? 'bg-purple-100 text-purple-700 border-2 border-purple-200' :
+                      'bg-gray-100 text-gray-700 border-2 border-gray-200'
+                    }`}>
+                      {examStatusText}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-center text-center">
+                  <h3 className="text-xl font-black text-gray-800 mb-6">Applicable Classes</h3>
                 <div className="flex flex-wrap justify-center gap-3">
                   {(selectedExam.classes || []).map(c => (
                     <span key={c} className="bg-[#FDF7EE] border-2 border-[#A05C2B]/20 text-[#A05C2B] px-4 py-2 rounded-full text-base font-bold shadow-sm">
@@ -503,11 +546,12 @@ export function AdminExam() {
                     <span className="text-sm text-gray-500 italic font-medium">No classes assigned</span>
                   )}
                 </div>
+                </div>
               </div>
+            
+            <div className="flex flex-col gap-3">
 
-              <div className="flex flex-col gap-3">
-                
-                
+
                 <div className="flex gap-3">
                   <button
                     onClick={() => handleDelete(selectedExam.id)}
@@ -523,16 +567,47 @@ export function AdminExam() {
           {activeTab === 'result_draft' && (
             <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
               {/* Draft Results */}
-              {selectedExam.isMarksEntryOpen ? (
+              {isMarksEntryOpen ? (
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <Layers className="w-5 h-5 text-[#A05C2B]" /> Result Drafts
                   </h3>
-                  <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
-                    <p className="text-sm text-gray-600 mb-4 font-medium">Drafts are populated by teachers. Publish results to lock marks and notify students.</p>
+                  <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${isDraftTableFullscreen ? 'fixed inset-4 z-50 overflow-y-auto p-6' : 'p-2 md:p-6 space-y-4'}`}>
+                    
+                    <div className="flex justify-between items-start mb-4">
+                      <p className="text-sm text-gray-600 font-medium">Drafts are populated by teachers. Publish results to lock marks and notify students.</p>
+                      <div className="flex gap-2">
+                        {(() => {
+                          const classesData = JSON.parse(localStorage.getItem('ajps_classes') || '[]');
+                          const unpublishedClasses = (selectedExam.classes || []).filter(c => {
+                            const clsObj = classesData.find((cl: any) => cl.className === c || cl.name === c);
+                            if (!clsObj) return true;
+                            const classKey = `${selectedExam.id}_${clsObj.className || clsObj.name}`;
+                            const classResult = results.find(r => r.examId === selectedExam.id && r.classKey === classKey);
+                            return !classResult?.isPublished;
+                          });
+                          if (unpublishedClasses.length === 0) return null;
+                          
+                          return (
+                            <button
+                              onClick={() => setPublishMultiModal({ examId: selectedExam.id, availableClasses: unpublishedClasses, selectedClasses: unpublishedClasses })}
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm font-bold rounded-lg shadow-sm transition-colors"
+                            >
+                              Publish Results
+                            </button>
+                          );
+                        })()}
+                        <button 
+                          onClick={() => setIsDraftTableFullscreen(!isDraftTableFullscreen)}
+                          className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                        </button>
+                      </div>
+                    </div>
 
                     <div className="flex flex-wrap gap-4 items-end mb-6">
-                      <div className="flex-1 min-w-[180px]">
+                      <div className="flex-1 min-w-full">
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Select Class</label>
                         <select
                           value={adminDraftClass}
@@ -555,7 +630,7 @@ export function AdminExam() {
                         return (
                           <>
                             {!adminDraftCombined && (
-                              <div className="flex-1 min-w-[180px]">
+                              <div className="flex-1 min-w-full">
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Select Section</label>
                                 <select
                                   value={adminDraftSection}
@@ -665,14 +740,6 @@ export function AdminExam() {
                               <button onClick={() => setAdminReportModal({ exam: selectedExam, classId: classIdToMatch, students: studentList, result: classResult, subjects: subjectsArr, c })} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-[#A05C2B] text-[#A05C2B] text-xs font-bold rounded-lg shadow-sm hover:bg-[#FDF7EE] transition-colors">
                                 <Printer className="w-4 h-4" /> Generate Report
                               </button>
-                              {!isPublished && (
-                                <button
-                                  onClick={() => handlePublishClick(selectedExam.id, classIdToMatch, c, classResult, clsObj)}
-                                  className="px-5 py-2 bg-[#1F2937] text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
-                                >
-                                  Publish Result
-                                </button>
-                              )}
                             </div>
                           </div>
 
@@ -693,7 +760,7 @@ export function AdminExam() {
                               <thead className="bg-[#1F2937] text-white">
                                 <tr>
                                   <th className="p-3 font-bold text-xs uppercase text-center border border-gray-600 w-20">Roll No.</th>
-                                  <th className="p-3 font-bold text-xs uppercase min-w-[180px] border border-gray-600">Student Name</th>
+                                  <th className="p-3 font-bold text-xs uppercase min-w-full border border-gray-600">Student Name</th>
                                   {subjectsArr.map(sub => (
                                     <th key={sub} className="p-3 font-bold text-xs uppercase text-center border border-gray-600">
                                       {sub} {emptySubjects.has(sub) ? '(Empty)' : ''}
@@ -701,45 +768,53 @@ export function AdminExam() {
                                   ))}
                                   <th className="p-3 font-bold text-xs uppercase text-center bg-[#374151] border border-gray-600 w-24">Total / {totalMaxMarks}</th>
                                   <th className="p-3 font-bold text-xs uppercase text-center bg-[#374151] border border-gray-600 w-20">%</th>
+                                  <th className="p-3 font-bold text-xs uppercase text-center bg-[#374151] border border-gray-600 w-16">Rank</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-100 bg-white">
-                                {studentList.map((student: any, idx: number) => {
-                                  const totalObtained = subjectsArr.reduce((sum, sub) => sum + (Number(student.marks[sub]) || 0), 0);
-                                  const percentage = totalMaxMarks > 0 ? ((totalObtained / totalMaxMarks) * 100).toFixed(1) : '0.0';
-                                  const hasAnyMark = subjectsArr.some(sub => student.marks[sub] !== undefined && student.marks[sub] !== '');
+                                {(() => {
+                                  const allTotals = studentList.map(s => subjectsArr.reduce((sum, sub) => sum + (Number(s.marks[sub]) || 0), 0)).sort((a, b) => b - a);
+                                  return studentList.map((student: any, idx: number) => {
+                                    const totalObtained = subjectsArr.reduce((sum, sub) => sum + (Number(student.marks[sub]) || 0), 0);
+                                    const percentage = totalMaxMarks > 0 ? ((totalObtained / totalMaxMarks) * 100).toFixed(1) : '0.0';
+                                    const hasAnyMark = subjectsArr.some(sub => student.marks[sub] !== undefined && student.marks[sub] !== '');
+                                    const rank = hasAnyMark ? allTotals.indexOf(totalObtained) + 1 : '—';
 
-                                  return (
-                                    <tr key={student.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                      <td className="p-3 font-bold text-gray-500 text-center border border-gray-300">{student.rollNumber || '—'}</td>
-                                      <td className="p-3 border border-gray-300">
-                                        <span className="font-semibold text-gray-800">{student.name}</span>
-                                        {(adminDraftCombined || activeSection === 'All') && (
-                                          <span className="ml-2 bg-blue-100 text-blue-700 text-[10px] font-black px-1.5 py-0.5 rounded uppercase">{student.sectionLabel}</span>
-                                        )}
-                                      </td>
-                                      {subjectsArr.map(sub => (
-                                        <td key={sub} className="p-3 text-center border border-gray-300">
-                                          {student.marks[sub] !== undefined && student.marks[sub] !== '' ? (
-                                            <span className={`font-bold ${student.marks[sub] === 0 ? 'text-red-500' : 'text-gray-900'}`}>{student.marks[sub]}</span>
-                                          ) : (
-                                            <span className="text-gray-300 text-xs italic">N/A</span>
+                                    return (
+                                      <tr key={student.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                        <td className="p-3 font-bold text-gray-500 text-center border border-gray-300">{student.rollNumber || '—'}</td>
+                                        <td className="p-3 border border-gray-300">
+                                          <span className="font-semibold text-gray-800">{student.name}</span>
+                                          {(adminDraftCombined || activeSection === 'All') && (
+                                            <span className=" bg-blue-100 text-blue-700 text-[10px] font-black px-1.5 py-0.5 rounded uppercase">{student.sectionLabel}</span>
                                           )}
                                         </td>
-                                      ))}
-                                      <td className="p-3 text-center bg-gray-50/50 border border-gray-300">
-                                        {hasAnyMark ? (
-                                          <span className="font-black text-[#A05C2B] text-base">{totalObtained}</span>
-                                        ) : (
-                                          <span className="text-gray-300 text-xs">—</span>
-                                        )}
-                                      </td>
-                                      <td className="p-3 text-center bg-gray-50/50 border border-gray-300 font-bold">
-                                        {hasAnyMark ? percentage + '%' : '—'}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
+                                        {subjectsArr.map(sub => (
+                                          <td key={sub} className="p-3 text-center border border-gray-300">
+                                            {student.marks[sub] !== undefined && student.marks[sub] !== '' ? (
+                                              <span className={`font-bold ${student.marks[sub] === 0 ? 'text-red-500' : 'text-gray-900'}`}>{student.marks[sub]}</span>
+                                            ) : (
+                                              <span className="text-gray-300 text-xs italic">N/A</span>
+                                            )}
+                                          </td>
+                                        ))}
+                                        <td className="p-3 text-center bg-gray-50/50 border border-gray-300">
+                                          {hasAnyMark ? (
+                                            <span className="font-black text-[#A05C2B] text-base">{totalObtained}</span>
+                                          ) : (
+                                            <span className="text-gray-300 text-xs">—</span>
+                                          )}
+                                        </td>
+                                        <td className="p-3 text-center bg-gray-50/50 border border-gray-300 font-bold">
+                                          {hasAnyMark ? percentage + '%' : '—'}
+                                        </td>
+                                        <td className="p-3 text-center bg-gray-50/50 border border-gray-300 font-black text-[#A05C2B]">
+                                          {rank}
+                                        </td>
+                                      </tr>
+                                    );
+                                  });
+                                })()}
                               </tbody>
                             </table>
                           </div>
@@ -752,7 +827,7 @@ export function AdminExam() {
                 <div className="py-12 text-center bg-white rounded-2xl border border-gray-200 shadow-sm">
                   <AlertTriangle className="w-12 h-12 text-amber-300 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-gray-800 mb-2">Marks Entry is Locked</h3>
-                  <p className="text-gray-500 font-medium">Unlock Marks Entry from the Overview tab to allow teachers to draft results.</p>
+                  <p className="text-gray-500 font-medium">Marks Entry Will Be Unlocked After Exam Commenced.</p>
                 </div>
               )}
             </div>
@@ -784,9 +859,11 @@ export function AdminExam() {
                                     <h5 className="font-bold text-gray-900">{sItem.subject}</h5>
                                     <span className="text-xs font-semibold text-gray-500">Section: {sItem.sectionId || sItem.section || 'All'}</span>
                                   </div>
-                                  <button onClick={() => { setEditingSyllabusId(sItem.id); setEditingTagsText((sItem.tags || []).join(', ')); }} className="text-blue-500 hover:text-blue-700">
-                                    <Edit3 className="w-4 h-4" />
-                                  </button>
+                                  {!isMarksEntryOpen && (
+                                    <button onClick={() => { setEditingSyllabusId(sItem.id); setEditingTagsText((sItem.tags || []).join(', ')); }} className="text-blue-500 hover:text-blue-700">
+                                      <Edit3 className="w-4 h-4" />
+                                    </button>
+                                  )}
                                 </div>
                                 {editingSyllabusId === sItem.id ? (
                                   <div className="mt-3 flex gap-2 items-center">
@@ -824,10 +901,12 @@ export function AdminExam() {
           )}
 
           {activeTab === 'criteria' && (
-            <div className="animate-in fade-in zoom-in-95 duration-300">
-              <div className="flex justify-between items-center mb-6">
+            <div className="animate-in fade-in zoom-in-95 duration-300 w-[calc(100%+32px)] -mx-4 md:mx-0 md:w-full">
+              <div className="flex justify-between items-center mb-6 px-4 md:px-0">
                 <h3 className="text-2xl font-black text-gray-900 tracking-tight">Evaluation Metrics</h3>
-                {isMetricsLocked ? (
+                {isMarksEntryOpen ? (
+                  <span className="text-xs font-bold bg-amber-100 text-amber-800 px-3 py-1 rounded-full uppercase">Read Only</span>
+                ) : isMetricsLocked ? (
                   <button onClick={() => setIsMetricsLocked(false)} className="flex items-center gap-2 bg-[#A05C2B] text-white px-5 py-2.5 rounded-xl font-bold shadow-md hover:bg-[#8b4d24] transition-colors">
                     <Edit3 className="w-4 h-4" /> Edit Metrics
                   </button>
@@ -846,7 +925,7 @@ export function AdminExam() {
                     <div className="flex flex-col sm:flex-row justify-center gap-4 mb-10">
                       <button
                         onClick={() => setMetricsType('same')}
-                        className={`p-5 rounded-3xl border-4 transition-all flex-1 max-w-[280px] mx-auto sm:mx-0 text-center ${metricsType === 'same' ? 'border-[#A05C2B] bg-[#FDF7EE] shadow-lg scale-105' : 'border-gray-100 bg-white hover:border-gray-200 opacity-60'}`}
+                        className={`p-5 rounded-3xl border-4 transition-all flex-1 max-w-full mx-auto sm:mx-0 text-center ${metricsType === 'same' ? 'border-[#A05C2B] bg-[#FDF7EE] shadow-lg scale-105' : 'border-gray-100 bg-white hover:border-gray-200 opacity-60'}`}
                       >
                         <h3 className={`text-xl font-black mb-1 ${metricsType === 'same' ? 'text-[#A05C2B]' : 'text-gray-500'}`}>Same for All</h3>
                         <p className="text-sm font-bold text-gray-400">One set of metrics</p>
@@ -856,7 +935,7 @@ export function AdminExam() {
                           setMetricsType('different');
                           if (evalDrafts.length === 0) addEvalDraft();
                         }}
-                        className={`p-5 rounded-3xl border-4 transition-all flex-1 max-w-[280px] mx-auto sm:mx-0 text-center ${metricsType === 'different' ? 'border-[#A05C2B] bg-[#FDF7EE] shadow-lg scale-105' : 'border-gray-100 bg-white hover:border-gray-200 opacity-60'}`}
+                        className={`p-5 rounded-3xl border-4 transition-all flex-1 max-w-full mx-auto sm:mx-0 text-center ${metricsType === 'different' ? 'border-[#A05C2B] bg-[#FDF7EE] shadow-lg scale-105' : 'border-gray-100 bg-white hover:border-gray-200 opacity-60'}`}
                       >
                         <h3 className={`text-xl font-black mb-1 ${metricsType === 'different' ? 'text-[#A05C2B]' : 'text-gray-500'}`}>Different Groups</h3>
                         <p className="text-sm font-bold text-gray-400">Create evaluation drafts</p>
@@ -892,12 +971,12 @@ export function AdminExam() {
                               <div className="flex flex-wrap gap-2 mb-4">
                                 {draft.classes.map(c => <span key={c} className="bg-white border border-gray-200 px-3 py-1 rounded-full text-xs font-bold text-gray-600">{c}</span>)}
                               </div>
-                              <div className="flex gap-4">
-                                <div className="flex-1 text-center">
+                              <div className="w-full p-3 rounded-xl bg-white grid grid-cols-2 gap-2">
+                                <div className="text-center">
                                   <p className="text-xs font-bold text-gray-400 uppercase mb-1">Max Marks</p>
                                   <p className="text-2xl font-black text-gray-800">{draft.maxMarks}</p>
                                 </div>
-                                <div className="flex-1 text-center">
+                                <div className="text-center">
                                   <p className="text-xs font-bold text-[#A05C2B] uppercase mb-1">Pass %</p>
                                   <p className="text-2xl font-black text-[#A05C2B]">{draft.passPercent}%</p>
                                 </div>
@@ -944,13 +1023,13 @@ export function AdminExam() {
                               pool={pool}
                             />
 
-                            <div className="flex flex-col sm:flex-row gap-6 mt-6">
-                              <div className="flex-1 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                            <div className="w-full p-3 rounded-xl bg-white grid grid-cols-2 gap-2">
+                              <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
                                 <label className="block text-sm font-bold text-gray-400 mb-2 text-center">Max Marks</label>
                                 <input type="number" value={draft.maxMarks} onChange={e => updateEvalDraft(draft.id, { maxMarks: +e.target.value })}
                                   className="w-full text-4xl text-center bg-transparent border-b-2 border-gray-200 focus:border-[#A05C2B] outline-none py-2 font-black text-gray-800 transition-colors" />
                               </div>
-                              <div className="flex-1 bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                              <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100">
                                 <label className="block text-sm font-bold text-gray-400 mb-2 text-center">Pass %</label>
                                 <input type="number" value={draft.passPercent} onChange={e => updateEvalDraft(draft.id, { passPercent: +e.target.value })}
                                   className="w-full text-4xl text-center bg-transparent border-b-2 border-gray-200 focus:border-[#A05C2B] outline-none py-2 font-black text-gray-800 transition-colors" />
@@ -977,15 +1056,17 @@ export function AdminExam() {
             <div className="animate-in fade-in zoom-in-95 duration-300">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-black text-gray-900 tracking-tight">Datesheet</h3>
-                <div className="flex gap-2">
-                  <button onClick={() => setIsPostponeModalOpen(true)} className="px-4 py-2.5 bg-amber-50 text-amber-600 rounded-xl text-sm font-bold shadow-sm hover:bg-amber-100 transition-colors">Postpone Exam</button>
-                  {isDatesheetLocked ? (
-                    <button onClick={() => setIsDatesheetLocked(false)} className="flex items-center gap-2 bg-[#A05C2B] text-white px-5 py-2.5 rounded-xl font-bold shadow-md hover:bg-[#8b4d24] transition-colors">
-                      <Edit3 className="w-4 h-4" /> Edit Datesheet
+                <div className="flex gap-1 md:gap-2">
+                  {!isMarksEntryOpen && <button onClick={() => setIsPostponeModalOpen(true)} className="px-2 py-1.5 md:px-4 md:py-2.5 bg-amber-50 text-amber-600 rounded-lg md:rounded-xl text-[10px] md:text-sm font-bold shadow-sm hover:bg-amber-100 transition-colors">Postpone Exam</button>}
+                  {isMarksEntryOpen ? (
+                    <span className="text-xs font-bold bg-amber-100 text-amber-800 px-3 py-1 rounded-full uppercase mt-1">Read Only</span>
+                  ) : isDatesheetLocked ? (
+                    <button onClick={() => setIsDatesheetLocked(false)} className="flex items-center gap-1 md:gap-2 bg-[#A05C2B] text-white px-2 py-1.5 md:px-5 md:py-2.5 rounded-lg md:rounded-xl text-[10px] md:text-sm font-bold shadow-md hover:bg-[#8b4d24] transition-colors">
+                      <Edit3 className="w-3 h-3 md:w-4 md:h-4" /> Edit
                     </button>
                   ) : (
-                    <button onClick={saveDatesheet} className="flex items-center gap-2 bg-[#1F2937] text-white px-5 py-2.5 rounded-xl font-bold shadow-md hover:bg-gray-800 transition-colors">
-                      <Save className="w-4 h-4" /> Save Datesheet
+                    <button onClick={saveDatesheet} className="flex items-center gap-1 md:gap-2 bg-[#1F2937] text-white px-2 py-1.5 md:px-5 md:py-2.5 rounded-lg md:rounded-xl text-[10px] md:text-sm font-bold shadow-md hover:bg-gray-800 transition-colors">
+                      <Save className="w-3 h-3 md:w-4 md:h-4" /> Save
                     </button>
                   )}
                 </div>
@@ -1148,234 +1229,295 @@ export function AdminExam() {
 
 
 
-        
+
         {adminReportModal && !printMode && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1F2937]/40 backdrop-blur-sm animate-in fade-in">
             <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-2xl relative border border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2"><Printer className="w-6 h-6 text-[#A05C2B]"/> Generate Report</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2"><Printer className="w-6 h-6 text-[#A05C2B]" /> Generate Report</h2>
               <p className="text-sm text-gray-600 mb-6">Select the type of report you want to generate for {adminReportModal.c}.</p>
-              
+
               <div className="space-y-3">
-                <button 
-                  onClick={() => { setPrintMode('class'); setTimeout(() => window.print(), 500); }} 
+                <button
+                  onClick={() => { setPrintMode('class'); setTimeout(() => window.print(), 500); }}
                   className="w-full text-left p-4 border border-gray-200 rounded-xl hover:border-[#A05C2B] hover:bg-[#FDF7EE] transition-all group"
                 >
                   <h3 className="font-bold text-gray-900 group-hover:text-[#A05C2B]">Class Report</h3>
                   <p className="text-xs text-gray-500 mt-1">Consolidated marksheet of all students in the class.</p>
                 </button>
-                
+
                 <div className="p-4 border border-gray-200 rounded-xl bg-gray-50">
                   <h3 className="font-bold text-gray-900 mb-2">Individual Report Card</h3>
-                  <p className="text-xs text-gray-500 mb-3">Professional report card for a single student.</p>
-                  <select 
-                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#A05C2B]"
-                    onChange={e => {
-                        if (e.target.value) {
-                           setSelectedPrintStudent(e.target.value);
-                           setPrintMode('individual');
-                           setTimeout(() => window.print(), 500);
-                        }
-                    }}
-                    value=""
-                  >
-                    <option value="">-- Select Student --</option>
+                  <p className="text-xs text-gray-500 mb-3">Select students to print their report cards.</p>
+                  
+                  <div className="max-h-48 overflow-y-auto custom-scrollbar border border-gray-200 rounded-lg bg-white mb-3 divide-y divide-gray-100">
+                    <label className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer">
+                      <input 
+                        type="checkbox"
+                        checked={selectedPrintStudents.length === adminReportModal.students.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPrintStudents(adminReportModal.students.map(s => s.id));
+                          } else {
+                            setSelectedPrintStudents([]);
+                          }
+                        }}
+                        className="w-4 h-4 text-[#A05C2B] rounded focus:ring-[#A05C2B]"
+                      />
+                      <span className="text-sm font-bold text-gray-800">Select All Students</span>
+                    </label>
                     {adminReportModal.students.map((st: any) => (
-                      <option key={st.id} value={st.id}>{st.rollNumber} - {st.name}</option>
+                      <label key={st.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 cursor-pointer pl-6">
+                        <input 
+                          type="checkbox"
+                          checked={selectedPrintStudents.includes(st.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedPrintStudents([...selectedPrintStudents, st.id]);
+                            } else {
+                              setSelectedPrintStudents(selectedPrintStudents.filter(id => id !== st.id));
+                            }
+                          }}
+                          className="w-4 h-4 text-[#A05C2B] rounded focus:ring-[#A05C2B]"
+                        />
+                        <span className="text-sm text-gray-700">{st.rollNumber} - {st.name}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      if (selectedPrintStudents.length > 0) {
+                        setPrintMode('individual');
+                        setTimeout(() => window.print(), 500);
+                      } else {
+                        triggerError('Please select at least one student.');
+                      }
+                    }}
+                    disabled={selectedPrintStudents.length === 0}
+                    className="w-full bg-[#1F2937] text-white py-2 rounded-lg font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                  >
+                    Print Selected ({selectedPrintStudents.length})
+                  </button>
                 </div>
               </div>
-              
+
               <button onClick={() => setAdminReportModal(null)} className="mt-6 w-full py-2.5 font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancel</button>
             </div>
           </div>
         )}
-        
-        {/* PRINT LAYOUTS */}
-        {adminReportModal && printMode === 'class' && (
-          <div className="hidden print:block absolute inset-0 bg-white p-8 z-[100]">
-            <style>{`
-              @page { size: A4 landscape; margin: 15mm; }
-              body * { visibility: hidden; }
-              .print\\:block, .print\\:block * { visibility: visible; }
-              .print\\:block { position: absolute; left: 0; top: 0; width: 100%; margin: 0; }
-            `}</style>
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-black uppercase">Amar Jyoti Public School</h1>
-              <h2 className="text-xl font-bold mt-1">{adminReportModal.exam.name} - Class Report</h2>
-              <p className="text-lg font-semibold mt-1 text-gray-700">{adminReportModal.c}</p>
-            </div>
-            
-            <table className="w-full border-collapse border border-gray-800 text-sm">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-800 p-2 text-left">Roll No</th>
-                  <th className="border border-gray-800 p-2 text-left">Student Name</th>
-                  {adminReportModal.subjects.map((sub: string) => (
-                    <th key={sub} className="border border-gray-800 p-2 text-center">{sub}</th>
-                  ))}
-                  <th className="border border-gray-800 p-2 text-center">Total</th>
-                  <th className="border border-gray-800 p-2 text-center">%</th>
-                </tr>
-              </thead>
-              <tbody>
-                {adminReportModal.students.map((st: any) => {
-                  const marks = adminReportModal.result?.marks?.[st.id] || {};
-                  let total = 0;
-                  const subjectsWithMarks = adminReportModal.subjects.filter((sub: string) => marks[sub] !== undefined && marks[sub] !== 'N/A' && marks[sub] !== '');
-                  subjectsWithMarks.forEach((sub: string) => { total += Number(marks[sub]) || 0; });
-                  const percent = subjectsWithMarks.length > 0 ? (total / (subjectsWithMarks.length * 100)) * 100 : 0;
-                  
-                  return (
-                    <tr key={st.id}>
-                      <td className="border border-gray-800 p-2">{st.rollNumber}</td>
-                      <td className="border border-gray-800 p-2 font-bold">{st.name}</td>
-                      {adminReportModal.subjects.map((sub: string) => (
-                        <td key={sub} className="border border-gray-800 p-2 text-center">{marks[sub] !== undefined ? marks[sub] : '-'}</td>
-                      ))}
-                      <td className="border border-gray-800 p-2 text-center font-bold">{total}</td>
-                      <td className="border border-gray-800 p-2 text-center font-bold">{percent.toFixed(1)}%</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-            
-            <div className="mt-16 flex justify-between px-12">
-              <div className="text-center">
-                <div className="w-48 border-b border-gray-800 mb-2"></div>
-                <p className="font-bold">Class Teacher Signature</p>
-              </div>
-              <div className="text-center">
-                <div className="w-48 border-b border-gray-800 mb-2"></div>
-                <p className="font-bold">Principal Signature</p>
-              </div>
-            </div>
-            
-          </div>
-        )}
-        
-        {adminReportModal && printMode === 'individual' && selectedPrintStudent && (() => {
-          const st = adminReportModal.students.find((s: any) => s.id === selectedPrintStudent);
-          if (!st) return null;
-          
-          const marks = adminReportModal.result?.marks?.[st.id] || {};
-          const subjects = Object.keys(marks).filter(sub => marks[sub] !== undefined && marks[sub] !== null && marks[sub] !== '' && marks[sub] !== 'N/A');
-          let total = 0;
-          subjects.forEach(sub => { total += Number(marks[sub]) || 0; });
-          const totalMax = subjects.length * 100;
-          const percent = totalMax > 0 ? (total / totalMax) * 100 : 0;
-          
-          const getGrade = (m: number) => {
-            if (m >= 90) return 'A1';
-            if (m >= 80) return 'A2';
-            if (m >= 70) return 'B1';
-            if (m >= 60) return 'B2';
-            if (m >= 50) return 'C1';
-            if (m >= 40) return 'C2';
-            if (m >= 33) return 'D';
-            return 'E';
-          };
-          
+
+        {/* PRINT LAYOUTS — Using new ReportCardTemplate */}
+        {adminReportModal && printMode === 'class' && (() => {
+          const maxMarks = selectedExam?.metrics?.type === 'same'
+            ? (selectedExam.metrics.same?.maxMarks || 100)
+            : (selectedExam?.metrics?.different?.[adminReportModal.c]?.maxMarks || 100);
+
+          const reportStudents: ReportStudentData[] = adminReportModal.students.map((st: any) => ({
+            id: st.id,
+            name: st.name,
+            rollNumber: st.rollNumber,
+            fatherName: st.fatherName,
+            className: adminReportModal.c,
+            section: st.sectionLabel,
+            marks: adminReportModal.result?.marks?.[st.id] || {}
+          }));
+
           return (
-            <div className="hidden print:block absolute inset-0 bg-white p-8 z-[100]">
+            <div className="hidden print:block absolute inset-0 bg-white z-[100]" ref={reportPrintRef}>
               <style>{`
-                @page { size: A4; margin: 20mm; }
-                body * { visibility: hidden; }
-                .print\\:block, .print\\:block * { visibility: visible; }
-                .print\\:block { position: absolute; left: 0; top: 0; width: 100%; margin: 0; }
+                @page { size: A4 landscape; margin: 10mm; }
+                @media print {
+                  body * { visibility: hidden; }
+                  html, body, #root, .main-content-responsive, main { overflow: visible !important; height: auto !important; position: static !important; }
+                  .print\\:block, .print\\:block * { visibility: visible !important; }
+                  .print\\:block { position: static !important; width: 100%; margin: 0; padding: 0; display: block !important; overflow: visible !important; height: auto !important; }
+                }
+              `}</style>
+              <ClassReportCard
+                students={reportStudents}
+                examName={selectedExam?.name || ''}
+                session="2024 - 2025"
+                className={adminReportModal.c}
+                subjects={adminReportModal.subjects}
+                maxMarksPerSubject={maxMarks}
+              />
+            </div>
+          );
+        })()}
+
+        {adminReportModal && printMode === 'individual' && selectedPrintStudents.length > 0 && (() => {
+          const maxMarks = selectedExam?.metrics?.type === 'same'
+            ? (selectedExam.metrics.same?.maxMarks || 100)
+            : (selectedExam?.metrics?.different?.[adminReportModal.c]?.maxMarks || 100);
+          const passPct = selectedExam?.metrics?.type === 'same'
+            ? (selectedExam.metrics.same?.passPercent || 33)
+            : (selectedExam?.metrics?.different?.[adminReportModal.c]?.passPercent || 33);
+
+          const allTotals = adminReportModal.students.map((s: any) => {
+            const m = adminReportModal.result?.marks?.[s.id] || {};
+            return adminReportModal.subjects.reduce((sum: number, sub: string) => sum + (Number(m[sub]) || 0), 0);
+          });
+
+          return (
+            <div className="hidden print:block absolute inset-0 bg-white z-[100]" ref={reportPrintRef}>
+              <style>{`
+                @page { size: A4 portrait; margin: 10mm; }
+                @media print {
+                  body * { visibility: hidden; }
+                  html, body, #root, .main-content-responsive, main { overflow: visible !important; height: auto !important; position: static !important; }
+                  .print\\:block, .print\\:block * { visibility: visible !important; }
+                  .print\\:block { position: static !important; width: 100%; margin: 0; padding: 0; display: block !important; overflow: visible !important; height: auto !important; }
+                  .report-page-break { page-break-after: always; break-after: page; }
+                  .report-page-break:last-child { page-break-after: avoid; break-after: auto; }
+                }
               `}</style>
               
-              <div className="border-4 border-[#A05C2B] p-8 rounded-xl relative">
-                <div className="text-center mb-8 border-b-2 border-[#A05C2B] pb-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-[#A05C2B] to-[#D4A373] rounded-full flex items-center justify-center text-white mx-auto mb-4">
-                    <span className="text-3xl font-black">AJPS</span>
-                  </div>
-                  <h1 className="text-2xl font-black text-gray-900 uppercase tracking-widest">Amar Jyoti Public School</h1>
-                  <p className="text-sm font-semibold text-gray-600 mt-1">Affiliated to CBSE, New Delhi</p>
-                  <div className="mt-4 inline-block bg-[#FDF7EE] text-[#A05C2B] px-6 py-2 rounded-full border border-[#E8DCC8] shadow-sm">
-                    <h2 className="text-lg font-bold tracking-wide">{adminReportModal.exam.name} - {adminReportModal.exam.month} Term</h2>
-                  </div>
-                </div>
+              {selectedPrintStudents.map(studentId => {
+                const st = adminReportModal.students.find((s: any) => s.id === studentId);
+                if (!st) return null;
+                
+                const reportStudent: ReportStudentData = {
+                  id: st.id,
+                  name: st.name,
+                  rollNumber: st.rollNumber,
+                  fatherName: st.fatherName,
+                  className: adminReportModal.c,
+                  section: st.sectionLabel,
+                  marks: adminReportModal.result?.marks?.[st.id] || {}
+                };
 
-                <div className="bg-[#FDFBF7] p-5 rounded-xl border border-gray-200 mb-8 flex flex-wrap gap-x-12 gap-y-4">
-                  <div><p className="text-xs font-bold text-gray-500 uppercase">Student Name</p><p className="font-bold text-gray-900 text-lg">{st.name}</p></div>
-                  <div><p className="text-xs font-bold text-gray-500 uppercase">Class</p><p className="font-bold text-gray-900 text-lg">{adminReportModal.c}</p></div>
-                  <div><p className="text-xs font-bold text-gray-500 uppercase">Roll Number</p><p className="font-bold text-gray-900 text-lg">{st.rollNumber}</p></div>
-                </div>
-
-                <div className="border border-gray-200 rounded-2xl overflow-hidden mb-8 w-full">
-                  <table className="w-full text-left">
-                    <thead className="bg-[#1F2937] text-white">
-                      <tr>
-                        <th className="p-4 font-bold">Subject</th>
-                        <th className="p-4 font-bold text-center">Max Marks</th>
-                        <th className="p-4 font-bold text-center">Obtained</th>
-                        <th className="p-4 font-bold text-center">Grade</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {subjects.map((sub: any, i: number) => {
-                        const mark = Number(marks[sub]);
-                        return (
-                          <tr key={i}>
-                            <td className="p-4 font-bold text-gray-800">{sub}</td>
-                            <td className="p-4 font-semibold text-gray-500 text-center">100</td>
-                            <td className="p-4 font-bold text-gray-900 text-center">{mark}</td>
-                            <td className="p-4 font-bold text-[#A05C2B] text-center">{getGrade(mark)}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                    <tfoot className="bg-[#FDF7EE] border-t-2 border-gray-200">
-                      <tr>
-                        <td className="p-4 font-black text-gray-900 text-right">TOTAL:</td>
-                        <td className="p-4 font-black text-gray-600 text-center">{totalMax}</td>
-                        <td className="p-4 font-black text-gray-900 text-center">{total}</td>
-                        <td className="p-4 font-bold text-[#A05C2B] text-center">{percent.toFixed(1)}%</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-
-                <div className="flex justify-between items-end pt-12 px-8">
-                  <div className="text-center">
-                    <div className="w-40 border-b-2 border-gray-400 mb-2"></div>
-                    <p className="text-xs font-bold text-gray-500 uppercase">Class Teacher Signature</p>
+                return (
+                  <div key={st.id} className="report-page-break">
+                    <IndividualReportCard
+                      student={reportStudent}
+                      examName={selectedExam?.name || ''}
+                      session="2025 - 2026"
+                      subjects={adminReportModal.subjects}
+                      allStudentTotals={allTotals}
+                      passingPercent={passPct}
+                      maxMarksPerSubject={maxMarks}
+                    />
                   </div>
-                  <div className="text-center relative">
-                    <img src="/school-seal.png" alt="" className="absolute bottom-6 -left-8 w-24 h-24 opacity-20 mix-blend-multiply" />
-                    <div className="w-40 border-b-2 border-gray-400 mb-2 relative z-10"></div>
-                    <p className="text-xs font-bold text-gray-500 uppercase">Principal Signature</p>
-                  </div>
-                </div>
-              </div>
-              
+                );
+              })}
             </div>
-          )
+          );
         })()}
 
 
-{publishWarningModal && (
+        {/* ── Publish Multi Modal ─── */}
+        {publishMultiModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1F2937]/40 backdrop-blur-sm animate-in fade-in">
+            <GlassCard className="w-full max-w-lg bg-white p-8 border border-white/50 shadow-2xl relative">
+              <button onClick={() => setPublishMultiModal(null)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1">
+                <X className="w-5 h-5" />
+              </button>
+              <h2 className="text-xl font-bold text-gray-900 mb-4 text-center">Publish Results</h2>
+              <p className="text-sm text-gray-600 mb-6 text-center">
+                Select the classes you want to publish results for.
+              </p>
+              
+              <div className="max-h-60 overflow-y-auto custom-scrollbar mb-6 border border-gray-100 rounded-xl p-4 space-y-3">
+                {publishMultiModal.availableClasses.map(c => (
+                  <label key={c} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded-lg">
+                    <input 
+                      type="checkbox" 
+                      className="w-5 h-5 rounded border-gray-300 text-[#A05C2B] focus:ring-[#A05C2B]"
+                      checked={publishMultiModal.selectedClasses.includes(c)}
+                      onChange={(e) => {
+                        const newSelected = e.target.checked 
+                          ? [...publishMultiModal.selectedClasses, c] 
+                          : publishMultiModal.selectedClasses.filter(cls => cls !== c);
+                        setPublishMultiModal({ ...publishMultiModal, selectedClasses: newSelected });
+                      }}
+                    />
+                    <span className="font-bold text-gray-700">{c}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-3 mt-8">
+                <button onClick={() => setPublishMultiModal(null)} className="px-4 py-2.5 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+                <button 
+                  onClick={() => {
+                    executeMultiPublish(publishMultiModal.examId, publishMultiModal.selectedClasses);
+                    setPublishMultiModal(null);
+                  }} 
+                  className="px-5 py-2.5 font-bold bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-md transition-colors disabled:opacity-50"
+                  disabled={publishMultiModal.selectedClasses.length === 0}
+                >
+                  Publish Selected
+                </button>
+                <button 
+                  onClick={() => {
+                    executeMultiPublish(publishMultiModal.examId, publishMultiModal.availableClasses);
+                    setPublishMultiModal(null);
+                  }} 
+                  className="px-5 py-2.5 font-bold bg-[#A05C2B] text-white rounded-xl hover:bg-[#8B5E2E] shadow-md transition-colors"
+                >
+                  Publish All
+                </button>
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
+        {/* ── Publish Confirmation Modal (no missing marks) ─── */}
+        {publishConfirmModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1F2937]/40 backdrop-blur-sm animate-in fade-in">
             <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-2xl relative">
-              <h2 className="text-xl font-bold text-red-600 mb-2 flex items-center gap-2"><AlertTriangle className="w-6 h-6"/> Missing Marks</h2>
-              <p className="text-sm text-gray-600 mb-6">You are about to publish the result but {publishWarningModal.missingCount} marks are missing or not entered by teachers. Do you want to publish anyway?</p>
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">Publish Result?</h2>
+              <p className="text-sm text-gray-600 mb-2 text-center">
+                You are about to publish results for <strong>{publishConfirmModal.className}</strong> in <strong>{selectedExam?.name}</strong>.
+              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6">
+                <p className="text-xs text-amber-800 font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  Once published, results will be visible to students and parents immediately. This action cannot be undone.
+                </p>
+              </div>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setPublishWarningModal(null)} className="px-4 py-2 font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-                <button onClick={() => executePublish(publishWarningModal.examId, publishWarningModal.classId)} className="px-4 py-2 font-bold bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md">Publish Anyway</button>
+                <button onClick={() => setPublishConfirmModal(null)} className="px-4 py-2.5 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+                <button onClick={() => { executePublish(publishConfirmModal.examId, publishConfirmModal.classId); setPublishConfirmModal(null); }} className="px-5 py-2.5 font-bold bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-md transition-colors">Confirm & Publish</button>
               </div>
             </div>
           </div>
         )}
-<Toast message={toastMsg} />
+
+        {/* ── Publish Warning Modal (missing marks) ─── */}
+        {publishWarningModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1F2937]/40 backdrop-blur-sm animate-in fade-in">
+            <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-2xl relative">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold text-red-600 mb-2 text-center">Missing Marks Detected</h2>
+              <p className="text-sm text-gray-600 mb-2 text-center">
+                <strong className="text-red-600">{publishWarningModal.missingCount}</strong> marks are missing or not entered by teachers.
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-6">
+                <p className="text-xs text-red-800 font-semibold">
+                  ⚠️ Publishing with missing marks means some students will see incomplete results. Consider asking teachers to complete entry before publishing.
+                </p>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setPublishWarningModal(null)} className="px-4 py-2.5 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+                <button onClick={() => { executePublish(publishWarningModal.examId, publishWarningModal.classId); setPublishWarningModal(null); }} className="px-5 py-2.5 font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 shadow-md transition-colors">Publish Anyway</button>
+              </div>
+            </div>
+          </div>
+        )}
+        <Toast message={toastMsg} />
       </div>
     );
   }
 
   // List View
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 min-h-[calc(100vh-4rem)] pb-24 md:pb-8 animate-in fade-in zoom-in-95 duration-300">
+    <div className="px-1 py-4 md:p-8 max-w-full mx-auto space-y-8 min-h-[calc(100vh-4rem)] pb-24 md:pb-8 animate-in fade-in zoom-in-95 duration-300">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-200 pb-6">
         <div>
           <h1 className="text-2xl font-black text-[#1F2937] tracking-tight">Exam Administration</h1>
@@ -1407,54 +1549,96 @@ export function AdminExam() {
           </GlassCard>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {exams.map(exam => (
-              <GlassCard
-                key={exam.id}
-                className="p-5 bg-white border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow cursor-pointer group relative"
-                onClick={() => setSelectedExam(exam)}
-              >
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-bold text-gray-900 text-lg group-hover:text-[#A05C2B] transition-colors">{exam.name}</h4>
-                    <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wide">
-                      {exam.month}
+            {exams.map(exam => {
+              const exDs = datesheets.filter(d => d.examId === exam.id);
+              const allDatesStr = exDs.flatMap(d => (d.rows || []).map((r: any) => r.date)).filter(Boolean).sort();
+              const firstDateStr = allDatesStr.length > 0 ? allDatesStr[0] : null;
+              const todayStr = getSystemDate().toISOString().split('T')[0];
+              const isDerivedUnlocked = firstDateStr ? todayStr > firstDateStr : false;
+              const marksUnlocked = exam.isMarksEntryOpen || isDerivedUnlocked;
+
+              return (
+                <GlassCard
+                  key={exam.id}
+                  className="p-5 bg-white border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow cursor-pointer group relative"
+                  onClick={() => setSelectedExam(exam)}
+                >
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-gray-900 text-lg group-hover:text-[#A05C2B] transition-colors">{exam.name}</h4>
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-wide">
+                        {exam.month}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 mb-2">
+                      <p className="text-xs text-gray-500 font-semibold">
+                        <span className="text-gray-400 font-medium">Date:</span> {exam.startDate} to {exam.endDate}
+                      </p>
+                      <p className="text-xs text-gray-500 font-semibold line-clamp-1">
+                        <span className="text-gray-400 font-medium">Classes:</span> {(exam.classes || []).join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${marksUnlocked ? 'text-amber-600' : 'text-gray-400'}`}>
+                      {marksUnlocked ? '🔓 Marks Unlocked' : '🔒 Marks Locked'}
+                    </span>
+                    <span className="text-xs font-bold text-[#A05C2B] opacity-0 group-hover:opacity-100 transition-opacity">
+                      View Details &rarr;
                     </span>
                   </div>
-                  <div className="flex flex-col gap-1 mb-2">
-                    <p className="text-xs text-gray-500 font-semibold">
-                      <span className="text-gray-400 font-medium">Date:</span> {exam.startDate} to {exam.endDate}
-                    </p>
-                    <p className="text-xs text-gray-500 font-semibold line-clamp-1">
-                      <span className="text-gray-400 font-medium">Classes:</span> {(exam.classes || []).join(', ')}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${exam.isMarksEntryOpen ? 'text-amber-600' : 'text-gray-400'}`}>
-                    {exam.isMarksEntryOpen ? '🔓 Marks Unlocked' : '🔒 Marks Locked'}
-                  </span>
-                  <span className="text-xs font-bold text-[#A05C2B] opacity-0 group-hover:opacity-100 transition-opacity">
-                    View Details &rarr;
-                  </span>
-                </div>
-              </GlassCard>
-            ))}
+                </GlassCard>
+              );
+            })}
           </div>
         )}
       </div>
-      {publishWarningModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1F2937]/40 backdrop-blur-sm animate-in fade-in">
-            <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-2xl relative">
-              <h2 className="text-xl font-bold text-red-600 mb-2 flex items-center gap-2"><AlertTriangle className="w-6 h-6"/> Missing Marks</h2>
-              <p className="text-sm text-gray-600 mb-6">You are about to publish the result but {publishWarningModal.missingCount} marks are missing or not entered by teachers. Do you want to publish anyway?</p>
-              <div className="flex justify-end gap-3">
-                <button onClick={() => setPublishWarningModal(null)} className="px-4 py-2 font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-                <button onClick={() => executePublish(publishWarningModal.examId, publishWarningModal.classId)} className="px-4 py-2 font-bold bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md">Publish Anyway</button>
-              </div>
+      {publishConfirmModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1F2937]/40 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-2xl relative">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">Publish Result?</h2>
+            <p className="text-sm text-gray-600 mb-2 text-center">
+              You are about to publish results for <strong>{publishConfirmModal.className}</strong>.
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6">
+              <p className="text-xs text-amber-800 font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                Once published, results will be visible to students and parents immediately. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setPublishConfirmModal(null)} className="px-4 py-2.5 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+              <button onClick={() => { executePublish(publishConfirmModal.examId, publishConfirmModal.classId); setPublishConfirmModal(null); }} className="px-5 py-2.5 font-bold bg-green-600 text-white rounded-xl hover:bg-green-700 shadow-md transition-colors">Confirm & Publish</button>
             </div>
           </div>
-        )}
-<Toast message={toastMsg} />
+        </div>
+      )}
+      {publishWarningModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1F2937]/40 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-2xl relative">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-600" />
+            </div>
+            <h2 className="text-xl font-bold text-red-600 mb-2 text-center">Missing Marks Detected</h2>
+            <p className="text-sm text-gray-600 mb-2 text-center">
+              <strong className="text-red-600">{publishWarningModal.missingCount}</strong> marks are missing or not entered by teachers.
+            </p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-6">
+              <p className="text-xs text-red-800 font-semibold">
+                ⚠️ Publishing with missing marks means some students will see incomplete results.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setPublishWarningModal(null)} className="px-4 py-2.5 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
+              <button onClick={() => { executePublish(publishWarningModal.examId, publishWarningModal.classId); setPublishWarningModal(null); }} className="px-5 py-2.5 font-bold bg-red-600 text-white rounded-xl hover:bg-red-700 shadow-md transition-colors">Publish Anyway</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast message={toastMsg} />
     </div>
   );
 }

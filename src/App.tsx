@@ -128,8 +128,7 @@ export default function App() {
                 <TransportProvider>
                   <NotificationProvider>
                     <GamesProvider>
-                      <AppContent />
-                      <RoleSwitcher />
+                      <AppWithLoading />
                     </GamesProvider>
                   </NotificationProvider>
                 </TransportProvider>

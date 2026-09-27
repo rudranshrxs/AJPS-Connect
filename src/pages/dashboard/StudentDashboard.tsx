@@ -21,6 +21,7 @@ import {
   BookOpen,
   Bell,
   User,
+  MapPin,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { Notice } from "../../types";
@@ -28,6 +29,7 @@ import { useSuccess } from "../../context/SuccessContext";
 import { NotificationService } from "../../services/NotificationService";
 import { useFees } from "../../hooks/useFees";
 import { useLiveNotifications } from "../../hooks/useLiveNotifications";
+import LiveTrackingMap from "../../components/maps/LiveTrackingMap";
 
 // Helper for subject icons
 const getSubjectIcon = (name: string) => {
@@ -469,6 +471,23 @@ export function StudentDashboard() {
             </div>
           </div>
         </div>
+
+        {(() => {
+          const hour = new Date().getHours();
+          const isMapTime = (hour >= 6 && hour < 9) || (hour >= 12 && hour < 16);
+          if (isMapTime) {
+            return (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mt-6 mb-6">
+                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><MapPin className="w-5 h-5 text-[#A05C2B]"/> Live Bus Tracking (Satellite)</h3>
+                 <div className="h-[300px]">
+                    <LiveTrackingMap />
+                 </div>
+                 <p className="text-xs text-gray-400 mt-3 text-center">Map tracking is active during transit hours: 6 AM - 9 AM & 12 PM - 4 PM</p>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         <div>
           <h3 className="font-bold text-gray-800 mb-3 ml-1">

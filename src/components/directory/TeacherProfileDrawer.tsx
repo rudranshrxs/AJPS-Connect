@@ -14,6 +14,8 @@ interface TeacherProfileDrawerProps {
 
 export function TeacherProfileDrawer({ teacher, isOpen, onClose, onUpdate, allTeachers }: TeacherProfileDrawerProps) {
   const { triggerSuccess, triggerError } = useSuccess();
+  type TabType = 'Personal' | 'Timetable' | 'Attendance' | 'Documents';
+  const [activeTab, setActiveTab] = useState<TabType>('Personal');
   const [newTag, setNewTag] = useState('');
   const [selectedProxy, setSelectedProxy] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,10 +39,12 @@ export function TeacherProfileDrawer({ teacher, isOpen, onClose, onUpdate, allTe
       const proxyTeacher = allTeachers.find(t => t.id === selectedProxy);
       if (proxyTeacher) {
         // Find the class that the current (absent) teacher teaches
+        const settings = JSON.parse(localStorage.getItem('ajps_global_settings') || '{}');
+        const periods = Array.from({ length: settings.totalPeriods || 6 }, (_, i) => `p${i + 1}`);
         const timetables = JSON.parse(localStorage.getItem('ajps_timetables') || '[]');
         const myClassTimetable = timetables.find((t: any) =>
           ['monday','tuesday','wednesday','thursday','friday','saturday'].some(day =>
-            ['p1','p2','p3','p4','p5','p6'].some(period => t.schedule?.[day]?.[period] === teacher.id)
+            periods.some(period => t.schedule?.[day]?.[period] === teacher.id)
           )
         );
 
@@ -137,8 +141,30 @@ export function TeacherProfileDrawer({ teacher, isOpen, onClose, onUpdate, allTe
               )}
             </div>
           </div>
+        </div>
 
-          {/* Details Section */}
+        {/* Tabs */}
+        <div className="flex overflow-x-auto border-b border-gray-100 hide-scrollbar bg-gray-50/50 mt-4">
+          {(['Personal', 'Timetable', 'Attendance', 'Documents'] as TabType[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-4 font-bold text-sm whitespace-nowrap transition-colors relative ${
+                activeTab === tab ? 'text-[#8B5E2E]' : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              {tab}
+              {activeTab === tab && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#8B5E2E] rounded-t-full" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-6 space-y-8">
+          {activeTab === 'Personal' && (
+            <>
+              {/* Details Section */}
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
             <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
               <UserCheck className="w-4 h-4 text-[#8B5E2E]" />
@@ -217,8 +243,18 @@ export function TeacherProfileDrawer({ teacher, isOpen, onClose, onUpdate, allTe
               </button>
             </div>
           </div>
+          </>
+          )}
 
-          {/* Proxy Assignment Engine */}
+          {activeTab === 'Timetable' && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-center text-gray-500 py-10">
+              Timetable data will appear here.
+            </div>
+          )}
+
+          {activeTab === 'Attendance' && (
+            <>
+              {/* Proxy Assignment Engine */}
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-red-100 bg-gradient-to-br from-white to-red-50">
             <h4 className="text-sm font-bold text-red-700 mb-1 flex items-center gap-2">
               <ShieldAlert className="w-4 h-4" />
@@ -245,7 +281,15 @@ export function TeacherProfileDrawer({ teacher, isOpen, onClose, onUpdate, allTe
                 Assign Proxy
               </button>
             </div>
-          </div>
+            </div>
+          </>
+          )}
+
+          {activeTab === 'Documents' && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-center text-gray-500 py-10">
+              No documents uploaded yet.
+            </div>
+          )}
 
           <div className="pb-8"></div>
         </div>

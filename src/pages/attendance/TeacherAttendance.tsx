@@ -328,7 +328,7 @@ export function TeacherAttendance() {
         title: 'Attendance Alert',
         message: 'You were marked absent today.',
         type: 'warning',
-        actionPath: '/student/dashboard',
+        actionPath: '/dashboard',
         actionLabel: 'View'
       });
     }
@@ -430,15 +430,14 @@ export function TeacherAttendance() {
 
   if (!isReady) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+      <div className="w-full max-w-full px-3 py-12 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-24 animate-in fade-in zoom-in-95 duration-300">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="w-full max-w-full px-3">
         
         {scannerMode && (
           <TeacherLiveAttendance 
@@ -475,7 +474,7 @@ export function TeacherAttendance() {
           </div>
         )}
 
-        <div className="mb-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="mb-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-2 md:p-6">
           <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Select View</label>
           <div className="relative md:w-64">
             <select
@@ -499,7 +498,7 @@ export function TeacherAttendance() {
           {/* Module 1: My Attendance */}
           {activeTab === 'self' && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-4 md:p-6 bg-gray-50/30">
+            <div className="p-1 md:p-6 bg-gray-50/30">
                 {/* Content for My Attendance is handled by activeTab === 'self' wrapper */}
                 <div className="space-y-6 animate-in fade-in duration-300">
             <GlassCard className="p-6 md:p-8 text-center bg-white border-gray-100 shadow-sm flex flex-col items-center justify-center rounded-2xl transition-all duration-300 ease-in-out">
@@ -583,13 +582,13 @@ export function TeacherAttendance() {
 
           {/* Module 2: Mark Attendance */}
           {classDetails && activeTab === 'mark' && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-4 md:p-6 bg-gray-50/30">
+          <div className="bg-transparent md:bg-white rounded-none md:rounded-2xl border-none md:border md:border-gray-100 shadow-none md:shadow-sm overflow-hidden">
+            <div className="p-0 md:p-6 bg-transparent md:bg-gray-50/30">
                 {/* Date Selection for Mark Attendance */}
                 <div className="mb-8 flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm w-fit">
                   <label className="font-bold text-gray-800">Select Date:</label>
                   <div className="flex items-center bg-gray-50 border border-gray-200 p-2 rounded-lg">
-                    <Calendar className="w-5 h-5 text-gray-400 mr-2" />
+                    <Calendar className="w-5 h-5 text-gray-400 " />
                     <input 
                       type="date" 
                       value={activeDate}
@@ -618,7 +617,7 @@ export function TeacherAttendance() {
         {classDetails && !(isSunday || isHoliday) && (
           <div className={`transition-all duration-300`}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+              <div className="w-full p-3 rounded-xl bg-white">
                 <div className="bg-green-50 text-green-600 rounded-full w-12 h-12 flex items-center justify-center shrink-0">
                   <Users className="w-6 h-6" />
                 </div>
@@ -629,7 +628,7 @@ export function TeacherAttendance() {
                 </div>
               </div>
               
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+              <div className="w-full p-3 rounded-xl bg-white">
                 <div className="bg-green-100 text-green-700 rounded-full w-12 h-12 flex items-center justify-center shrink-0 font-bold text-xl">
                   P
                 </div>
@@ -640,7 +639,7 @@ export function TeacherAttendance() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+              <div className="w-full p-3 rounded-xl bg-white">
                 <div className="bg-red-100 text-red-600 rounded-full w-12 h-12 flex items-center justify-center shrink-0 font-bold text-xl">
                   A
                 </div>
@@ -652,9 +651,9 @@ export function TeacherAttendance() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-5 flex justify-between items-center border-b border-gray-100">
+            <div className="w-full">
+              <div className="w-[calc(100%+24px)] -mx-3 md:mx-0 md:w-full bg-transparent md:bg-white rounded-none md:rounded-2xl shadow-none md:shadow-sm border-none md:border md:border-gray-100 overflow-hidden">
+                <div className="p-2 md:p-5 flex justify-between items-center border-b border-gray-200 md:border-gray-100">
                   <h3 className="font-bold text-gray-900 text-lg">{classDetails.name}</h3>
                   <span className="text-sm text-gray-500">Total Students: {totalStudents}</span>
                 </div>
@@ -666,23 +665,22 @@ export function TeacherAttendance() {
                     const shortRoll = student.rollNumber ? student.rollNumber.replace(/^132426/, '') : 'N/A';
                     
                     return (
-                      <div key={student.id} className={`flex items-center justify-between p-3 border-b border-gray-50 last:border-0 transition-all duration-300 ease-in-out ${isLocked ? 'opacity-70' : 'hover:bg-gray-50'}`}>
-                        {/* Left Side */}
+                      <div key={student.id} className={`grid grid-cols-[auto_1fr_auto] gap-2 md:gap-3 items-center py-2 md:p-3 border-b border-gray-200 md:border-gray-50 last:border-0 transition-all duration-300 ease-in-out ${isLocked ? 'opacity-70' : 'hover:bg-gray-50'}`}>
                         <div 
-                          className="flex-1 min-w-0 flex items-center gap-3 cursor-pointer group"
+                          className="w-10 h-10 md:w-10 md:h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm md:text-sm font-bold shrink-0 transition-all duration-300 cursor-pointer hover:bg-blue-100"
                           onClick={() => setSelectedStudentForCalendar(student)}
                         >
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs md:text-sm font-bold shrink-0 transition-all duration-300 group-hover:bg-blue-100">
-                            {student.name.charAt(0)}
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-sm md:text-base font-semibold truncate text-gray-900 group-hover:text-blue-600 transition-colors">{student.name}</span>
-                            <span className="text-[10px] md:text-xs text-gray-500 truncate">Roll: {shortRoll}</span>
-                          </div>
+                          {student.name.charAt(0)}
+                        </div>
+                        <div 
+                          className="flex flex-col min-w-0 cursor-pointer group" 
+                          onClick={() => setSelectedStudentForCalendar(student)}
+                        >
+                          <span className="text-lg md:text-base font-bold truncate text-gray-900 group-hover:text-blue-600 transition-colors">{student.name}</span>
+                          <span className="text-xs md:text-xs text-gray-500 truncate">Roll: {shortRoll}</span>
                         </div>
 
-                        {/* Right Side */}
-                        <div className="shrink-0 flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                           {isOnLeave ? (
                             <div className="px-3 py-1.5 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-md text-xs font-medium">
                               On Leave
@@ -692,7 +690,7 @@ export function TeacherAttendance() {
                               <button
                                 onClick={() => handleMark(student.id, 'Present')}
                                 disabled={isLocked}
-                                className={`w-8 h-8 md:w-10 md:h-10 rounded-md flex items-center justify-center font-bold text-xs md:text-sm transition-all duration-300 ease-in-out ${
+                                className={`w-12 h-12 md:w-10 md:h-10 rounded-md flex items-center justify-center font-bold text-base md:text-sm transition-all duration-300 ease-in-out ${
                                   status === 'Present' 
                                     ? 'bg-green-600 text-white shadow-sm scale-105' 
                                     : status === 'Absent' 
@@ -705,7 +703,7 @@ export function TeacherAttendance() {
                               <button
                                 onClick={() => handleMark(student.id, 'Absent')}
                                 disabled={isLocked}
-                                className={`w-8 h-8 md:w-10 md:h-10 rounded-md flex items-center justify-center font-bold text-xs md:text-sm transition-all duration-300 ease-in-out ${
+                                className={`w-12 h-12 md:w-10 md:h-10 rounded-md flex items-center justify-center font-bold text-base md:text-sm transition-all duration-300 ease-in-out ${
                                   status === 'Absent' 
                                     ? 'bg-red-500 text-white shadow-sm scale-105' 
                                     : status === 'Present' 
@@ -725,76 +723,21 @@ export function TeacherAttendance() {
                     <div className="py-8 text-center text-gray-500 text-sm">No students found in your class section.</div>
                   )}
                 </div>
-              </div>
-
-              <div className="lg:col-span-4 flex flex-col space-y-4">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center flex flex-col items-center">
-                  <h4 className="font-semibold text-gray-900 mb-6 w-full text-left">Attendance Summary</h4>
-                  
-                  <div className="relative w-40 h-40 mb-6 flex items-center justify-center">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="transparent"
-                        stroke="#f3f4f6"
-                        strokeWidth="12"
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="transparent"
-                        stroke="#16a34a"
-                        strokeWidth="12"
-                        strokeDasharray="251.2"
-                        strokeDashoffset={animateChart ? `calc(251.2 - (251.2 * ${presentPercentage}) / 100)` : "251.2"}
-                        strokeLinecap="round"
-                        style={{ transition: 'stroke-dashoffset 1.5s ease-out' }}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold text-gray-900">{presentPercentage}%</span>
-                      <span className="text-xs text-gray-500">Present</span>
-                    </div>
+                <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="bg-blue-50 text-blue-800 p-3 rounded-xl text-sm flex items-start gap-2 flex-1">
+                    <Info className="w-5 h-5 shrink-0" />
+                    <p>Mark attendance for all students, then click 'Submit Today'.</p>
                   </div>
-
-                  <div className="w-full space-y-3">
-                    <div className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                        Present
-                      </div>
-                      <span className="font-medium text-gray-900">{presentCount} <span className="text-gray-400 font-normal">({presentPercentage}%)</span></span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
-                        Absent
-                      </div>
-                      <span className="font-medium text-gray-900">{absentCount} <span className="text-gray-400 font-normal">({absentPercentage}%)</span></span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 text-blue-800 p-4 rounded-xl text-sm flex items-start gap-3">
-                  <Info className="w-5 h-5 shrink-0 mt-0.5" />
-                  <p>Please mark attendance for all students and click on 'Submit Today' to finalize.</p>
-                </div>
-
-                <div className="pt-2">
                   <button
                     onClick={handleLock}
                     disabled={isLocked}
-                    className={`w-full rounded-xl py-4 flex items-center justify-center gap-2 font-medium text-lg transition-colors ${
+                    className={`px-8 py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-base transition-colors ${
                       isLocked ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#0B1E40] text-white hover:bg-blue-900 shadow-md'
                     }`}
                   >
                     <CheckCircle className="w-5 h-5" /> 
                     {isLocked ? 'Submitted' : 'Submit Today'}
                   </button>
-                  <p className="text-center text-xs text-gray-500 mt-3">You can edit submitted attendance from the History tab.</p>
                 </div>
               </div>
             </div>
@@ -807,7 +750,7 @@ export function TeacherAttendance() {
           {/* Module 3: Leaves */}
           {classDetails && activeTab === 'leaves' && (
           <div id="leave-requests-section" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-4 md:p-6 bg-gray-50/30">
+            <div className="p-1 md:p-6 bg-gray-50/30">
                 <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
                   {leaves.length === 0 ? (
                     <div className="p-8 text-center bg-white rounded-2xl border border-gray-100 shadow-sm">
@@ -856,7 +799,7 @@ export function TeacherAttendance() {
           {/* Module 4: History */}
           {classDetails && activeTab === 'history' && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-4 md:p-6 bg-gray-50/30">
+            <div className="p-1 md:p-6 bg-gray-50/30">
                 <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
                   <div className="flex gap-2 bg-gray-100 p-1 rounded-xl mb-4 w-full md:w-fit mx-auto md:mx-0">
                     <button 
@@ -874,7 +817,7 @@ export function TeacherAttendance() {
                   </div>
                   <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
                     <div className="flex items-center bg-white border border-gray-200 p-2 rounded-xl shadow-sm w-full">
-                      <Search className="w-5 h-5 text-gray-400 ml-2 shrink-0" />
+                      <Search className="w-5 h-5 text-gray-400  shrink-0" />
                       <input 
                         type="text"
                         placeholder="Search Student..."
@@ -885,7 +828,7 @@ export function TeacherAttendance() {
                     </div>
                     {historyViewMode === 'class' && (
                       <div className="flex items-center bg-white border border-gray-200 p-2 rounded-xl shadow-sm w-full md:w-auto shrink-0">
-                        <Calendar className="w-5 h-5 text-gray-400 ml-2 shrink-0" />
+                        <Calendar className="w-5 h-5 text-gray-400  shrink-0" />
                         <input 
                           type="date"
                           value={searchDate}
@@ -1083,6 +1026,5 @@ export function TeacherAttendance() {
         </AnimatePresence>
         </div>
       </div>
-    </div>
   );
 }

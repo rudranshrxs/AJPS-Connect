@@ -144,7 +144,7 @@ export function StudentAttendance() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 pb-24">
+    <div className="w-full max-w-full px-3">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-black text-[#1F2937] tracking-tight flex items-center gap-2">
@@ -157,7 +157,7 @@ export function StudentAttendance() {
         <div className="hidden">{/* Removed flat tab buttons */}</div>
       </div>
 
-      <div className="mb-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+      <div className="mb-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-2 md:p-6">
         <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Select View</label>
         <div className="relative md:w-64">
           <select
@@ -178,9 +178,9 @@ export function StudentAttendance() {
         {/* Module 1: Overview */}
         {activeTab === "overview" && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-4 md:p-6 bg-gray-50/30">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
+          <div className="p-1 md:p-6 bg-gray-50/30">
+              <div className="w-full">
+                <div className="w-full mx-[2px] space-y-6">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <GlassCard className="p-5 text-center bg-white/40 border-white/50">
                       <p className="text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1">
@@ -215,36 +215,16 @@ export function StudentAttendance() {
                       </p>
                     </GlassCard>
                   </div>
-                </div>
-                <div className="lg:col-span-1">
-                  <GlassCard className="p-6 bg-[#FDF7EE]/80 border-[#A05C2B]/20 text-center flex flex-col justify-center h-full">
-                    <div className="w-16 h-16 bg-[#A05C2B]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <Plane className="w-8 h-8 text-[#A05C2B]" />
-                    </div>
-                    <h3 className="font-black text-[#1F2937] mb-2">
-                      Need a break?
-                    </h3>
-                    <p className="text-xs text-gray-600 font-semibold mb-6">
-                      Apply for leave here. Your class teacher will be notified
-                      immediately.
-                    </p>
-                    <button
-                      onClick={() => setIsLeaveModalOpen(true)}
-                      className="w-full bg-[#A05C2B] text-white py-3 rounded-xl font-bold hover:bg-[#8e5226] transition-colors shadow-sm"
-                    >
-                      Apply for Leave
-                    </button>
-                  </GlassCard>
+                  </div>
                 </div>
               </div>
-            </div>
-        </div>
+          </div>
         )}
 
         {/* Module 2: History */}
         {activeTab === "history" && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-4 md:p-6 bg-white animate-in fade-in zoom-in-95 duration-300">
+          <div className="p-1 md:p-6 bg-white animate-in fade-in zoom-in-95 duration-300">
               <AttendanceCalendar attendanceRecords={attendanceHistory} />
             </div>
         </div>
